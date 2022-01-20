@@ -19,5 +19,5 @@ dataset = dict(
     root='./dataset',
 )
 
-gradient_accumulation=1
-clip_grad_norm=1.0
+gradient_accumulation = 1
+clip_grad_norm = 1.0

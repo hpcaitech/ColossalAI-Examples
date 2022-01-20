@@ -47,7 +47,7 @@ def main():
     logger = get_dist_logger()
 
     ## build model
-    model = Linear_eval(model='resnet18', class_num=10)
+    model = Linear_eval(model='resnet18', class_num=10).cuda()
 
     # build dataloader
     train_dataloader = build_dataset_train()

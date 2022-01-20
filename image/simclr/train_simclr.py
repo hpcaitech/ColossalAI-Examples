@@ -4,6 +4,7 @@ from colossalai.logging import get_dist_logger
 from colossalai.trainer import Trainer, hooks
 from colossalai.utils import get_dataloader, MultiTimer
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
+from colossalai.engine.schedule import NonPipelineSchedule
 
 from torchvision.datasets import CIFAR10
 from NT_Xentloss import NT_Xentloss
@@ -11,43 +12,46 @@ from myhooks import TotalBatchsizeHook
 from models.simclr import SimCLR
 from augmentation import SimCLRTransform
 
+
 def build_dataset_train():
     augment = SimCLRTransform()
-    train_dataset = CIFAR10(root=gpc.config.dataset.root, 
-                                    transform=augment,
-                                    train=True,
-                                    download=True)
-                         
+    train_dataset = CIFAR10(root=gpc.config.dataset.root,
+                            transform=augment,
+                            train=True,
+                            download=True)
+
     return get_dataloader(
         dataset=train_dataset,
-        shuffle=True, 
-        num_workers = 1,
+        shuffle=True,
+        num_workers=1,
         batch_size=gpc.config.BATCH_SIZE,
         pin_memory=True,
     )
+
 
 def build_dataset_test():
     augment = SimCLRTransform()
-    val_dataset = CIFAR10(root=gpc.config.dataset.root, 
-                                    transform=augment,
-                                    train=False)
-    
+    val_dataset = CIFAR10(root=gpc.config.dataset.root,
+                          transform=augment,
+                          train=False)
+
     return get_dataloader(
         dataset=val_dataset,
         add_sampler=False,
-        num_workers = 1,
+        num_workers=1,
         batch_size=gpc.config.BATCH_SIZE,
         pin_memory=True,
     )
 
+
 def main():
     colossalai.launch_from_torch(config='./config.py')
-    
+
     # get logger
     logger = get_dist_logger()
 
-    ## build model
-    model = SimCLR(model='resnet18')
+    # build model
+    model = SimCLR(model='resnet18').cuda()
 
     # build dataloader
     train_dataloader = build_dataset_train()
@@ -57,7 +61,8 @@ def main():
     criterion = NT_Xentloss()
 
     # build optimizer
-    optimizer = colossalai.nn.FusedSGD(model.parameters(), lr=gpc.config.LEARNING_RATE, weight_decay=gpc.config.WEIGHT_DECAY, momentum=gpc.config.MOMENTUM)
+    optimizer = colossalai.nn.FusedSGD(model.parameters(), lr=gpc.config.LEARNING_RATE,
+                                       weight_decay=gpc.config.WEIGHT_DECAY, momentum=gpc.config.MOMENTUM)
 
     # lr_scheduelr
     lr_scheduler = CosineAnnealingWarmupLR(optimizer, warmup_steps=10, total_steps=gpc.config.NUM_EPOCHS)
@@ -70,8 +75,15 @@ def main():
     # build a timer to measure time
     timer = MultiTimer()
 
+    def process_batch_data(batch_data):
+        (x1, x2), img_cls = batch_data
+        # return data and label
+        return dict(x1=x1, x2=x2), img_cls
+
+    schedule = NonPipelineSchedule(batch_data_process_func=process_batch_data)
+
     # build trainer
-    trainer = Trainer(engine=engine, logger=logger, timer=timer)
+    trainer = Trainer(engine=engine, logger=logger, timer=timer, schedule=schedule)
 
     # build hooks
     hook_list = [
