@@ -76,7 +76,7 @@ class DaliDataloader(DALIClassificationIterator):
                 pipe.set_outputs(images, label)
 
         pipe.build()
-        last_batch_policy = 'DROP' if training else 'PARTIAL'
+        last_batch_policy = LastBatchPolicy.DROP if training else LastBatchPolicy.PARTIAL
         super().__init__(pipe, reader_name="Reader",
                          auto_reset=True,
                          last_batch_policy=last_batch_policy)

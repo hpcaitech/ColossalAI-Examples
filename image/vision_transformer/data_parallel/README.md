@@ -70,6 +70,8 @@ By tuning the parallelism, this example can be quickly deployed to a single serv
 
 To accelerate the training process, we use [DALI](https://github.com/NVIDIA/DALI) to read data and require the dataset to be in TFRecord format, which avoids directly reading a large number of raw image files and being limited by the efficiency of the file system.
 
+**NOTE : `nvidia.dali` may updata over time. For now, we require the version 1.19.0. If there is anything wrong when using, please feel free to raise an issue.**
+
 `train.py`
 
 We call DALI in this file to read data and start the training process using Colossal-AI.
