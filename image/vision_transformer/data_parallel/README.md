@@ -4,12 +4,37 @@ A common way to speed up AI model training is to implement large-batch training 
 
 # How to run
 
-On a single server, you can directly use torch.distributed to start pre-training on multiple GPUs in parallel. In Colossal-AI, we provided several launch methods to init the distributed backend. You can use `colossalai.launch` and `colossalai.get_default_parser` to pass the parameters via command line. If you happen to use launchers such as SLURM, OpenMPI and PyTorch launch utility, you can use `colossalai.launch_from_<torch/slurm/openmpi>` to read rank and world size from the environment variables directly for convenience. In this example, we use `launch_from_slurm` for demo purpose. You can check out more information about SLURM [here](https://slurm.schedmd.com/documentation.html).
+On a single server, you can directly use torch.distributed to start pre-training on multiple GPUs in parallel. In Colossal-AI, we provided several launch methods to init the distributed backend. You can use `colossalai.launch` and `colossalai.get_default_parser` to pass the parameters via command line. If you happen to use launchers such as SLURM, OpenMPI and PyTorch launch utility, you can use `colossalai.launch_from_<torch/slurm/openmpi>` to read rank and world size from the environment variables directly for convenience. 
+
+Before running, you should `export DATA=/path/to/imagenet`.
+
+If you are using `colossalai.launch_from_torch`, do this in your training script:
+
+```python
+# initialize distributed setting
+parser = colossalai.get_default_parser()
+args = parser.parse_args()
+colossalai.launch_from_torch(config=args.config)
+```
+
+In your terminal
+```shell
+# If your torch >= 1.10.0
+torchrun --standalone --nproc_per_node <world_size>  train.py --config config.py
+
+# If your torch >= 1.9.0
+python -m torch.distributed.run --standalone --nproc_per_node=8 train.py --config config.py
+
+# Otherwise
+python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr <node_name> --master_port 29500 train.py --config ./config.py
+```
+---
+
+If you are using `launch_from_slurm`, you can check out more information about SLURM [here](https://slurm.schedmd.com/documentation.html).
 
 ```shell
 HOST=<node name> srun bash ./scripts/train_slurm.sh
 ```
-
 ---
 
 If you are using `colossalai.launch`, do this:
@@ -31,21 +56,7 @@ In your terminal:
 ```shell
 <some_launcher> python train.py --config ./config.py --rank <rank> --world_size <world_size> --host <node name> --port 29500
 ```
----
-If you are using `colossalai.launch_from_torch`, do this:
-In your training script:
 
-```python
-# initialize distributed setting
-parser = colossalai.get_default_parser()
-args = parser.parse_args()
-colossalai.launch_from_torch(config=args.config)
-```
-
-In your terminal
-```shell
-python -m torch.distributed.launch --nproc_per_node <world_size> train.py --config ./config.py --host <node name> --port 29500
-```
 
 # Experiments
 To facilitate more people to reproduce the experiments with large-scale data parallel, we pre-trained ViT-Base/32 in only 14.58 hours on a small server with 4 NVIDIA A100 GPUs using ImageNet-1K dataset with batch size 32K for 300 epochs maintaining accuracy. For more complex pre-training of ViT-Base/16 and ViT-Large/32, it also takes only 78.58 hours and 37.83 hours to complete. Since the server used in this example is not a standard NVIDIA DGX A100 supercomputing unit, perhaps a better acceleration can be obtained on more professional hardware.

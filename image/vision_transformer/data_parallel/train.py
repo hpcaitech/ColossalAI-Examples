@@ -1,23 +1,22 @@
 import glob
-from math import log
 import os
-import colossalai
-from colossalai.nn.metric import Accuracy
-import torch
 
+import colossalai
+import torch
 from colossalai.context import ParallelMode
 from colossalai.core import global_context as gpc
-from colossalai.logging import get_dist_logger
-from colossalai.trainer import Trainer, hooks
+from colossalai.logging import disable_existing_loggers, get_dist_logger
 from colossalai.nn.lr_scheduler import LinearWarmupLR
-from dataloader.imagenet_dali_dataloader import DaliDataloader
-from mixup import MixupLoss, MixupAccuracy
+from colossalai.trainer import Trainer, hooks
 from timm.models import vit_base_patch16_224
+
+from dataloader.imagenet_dali_dataloader import DaliDataloader
+from mixup import MixupAccuracy, MixupLoss
 from myhooks import TotalBatchsizeHook
 
 
 def build_dali_train():
-    root = gpc.config.dali.root
+    root = os.environ['DATA']
     train_pat = os.path.join(root, 'train/*')
     train_idx_pat = os.path.join(root, 'idx_files/train/*')
     return DaliDataloader(
@@ -29,12 +28,12 @@ def build_dali_train():
         gpu_aug=gpc.config.dali.gpu_aug,
         cuda=True,
         mixup_alpha=gpc.config.dali.mixup_alpha,
-	randaug_num_layers=2
+        randaug_num_layers=2
     )
 
 
 def build_dali_test():
-    root = gpc.config.dali.root
+    root = os.environ['DATA']
     val_pat = os.path.join(root, 'validation/*')
     val_idx_pat = os.path.join(root, 'idx_files/validation/*')
     return DaliDataloader(
@@ -55,15 +54,15 @@ def main():
     # initialize distributed setting
     parser = colossalai.get_default_parser()
     args = parser.parse_args()
-
+    disable_existing_loggers()
     # launch from slurm batch job
-    colossalai.launch_from_slurm(config=args.config,
-                                 host=args.host,
-                                 port=args.port,
-                                 backend=args.backend
-                                 )
+    # colossalai.launch_from_slurm(config=args.config,
+    #                              host=args.host,
+    #                              port=args.port,
+    #                              backend=args.backend
+    #                              )
     # launch from torch
-    # colossalai.launch_from_torch(config=args.config)
+    colossalai.launch_from_torch(config=args.config)
 
     # get logger
     logger = get_dist_logger()
