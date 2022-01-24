@@ -1,11 +1,7 @@
-import glob
-from math import log
 import os
 import colossalai
-from colossalai.nn.metric import Accuracy
 import torch
 from pathlib import Path
-from colossalai.context import ParallelMode
 from colossalai.core import global_context as gpc
 from colossalai.logging import get_dist_logger
 from colossalai.utils import get_dataloader
@@ -14,14 +10,13 @@ from colossalai.nn.lr_scheduler import LinearWarmupLR
 from timm.models import vit_base_patch16_224
 from torchvision import datasets, transforms
 
-class all2rgb(torch.nn.Module):
+
+class Gray2RGB:
     """Convert all images (rgb or grayscale) to rgb.
 
     """
-    def __init__(self):
-        super().__init__()
 
-    def forward(self, img):
+    def __call__(self, img):
         """
         Args:
             img: Tensor
@@ -29,33 +24,25 @@ class all2rgb(torch.nn.Module):
         Returns:
             Tensor: RGB image.
         """
-        if img.size(dim=-3)==1:
+        if img.size(dim=-3) == 1:
             img = img.repeat(3, 1, 1)
         return img
+
 
 def main():
     # initialize distributed setting
     parser = colossalai.get_default_parser()
     args = parser.parse_args()
 
-    # launch from python 
-    colossalai.launch(config=args.config,
-                    rank=args.rank,
-                    world_size=args.world_size,
-                    host=args.host,
-                    port=args.port,
-                    backend=args.backend
-                    )
-    
+    # launch from torch
+    colossalai.launch_from_torch(config=args.config)
+
     # launch from slurm batch job
     # colossalai.launch_from_slurm(config=args.config,
     #                              host=args.host,
     #                              port=args.port,
     #                              backend=args.backend
     #                              )
-
-    # launch from torch
-    # colossalai.launch_from_torch(config=args.config)
 
     # get logger
     logger = get_dist_logger()
@@ -66,23 +53,24 @@ def main():
 
     # build dataloader
     train_dataset = datasets.Caltech101(
-        root = Path(os.environ['DATA']),
-        download = True,
+        root=Path(os.environ['DATA']),
+        download=True,
         transform=transforms.Compose([
             transforms.Resize(256),
             transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
+            Gray2RGB(),
             transforms.Normalize([0.5, 0.5, 0.5],
-                                [0.5, 0.5, 0.5])
+                                 [0.5, 0.5, 0.5])
         ]))
 
     train_dataloader = get_dataloader(dataset=train_dataset,
-                                  shuffle=True,
-                                  batch_size=gpc.config.BATCH_SIZE,
-                                  num_workers=1,
-                                  pin_memory=True,
-                                  )
+                                      shuffle=True,
+                                      batch_size=gpc.config.BATCH_SIZE,
+                                      num_workers=1,
+                                      pin_memory=True,
+                                      )
 
     # build optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-2, weight_decay=0.1)
@@ -108,8 +96,8 @@ def main():
         hooks.LRSchedulerHook(lr_scheduler, by_epoch=True),
 
         # comment if you do not need to use the hooks below
-        hooks.SaveCheckpointHook(interval=1, checkpoint_dir='./ckpt'),
-        hooks.TensorboardHook(log_dir='./tb_logs', ranks=[0]),
+        # hooks.SaveCheckpointHook(interval=1, checkpoint_dir='./ckpt'),
+        # hooks.TensorboardHook(log_dir='./tb_logs', ranks=[0]),
     ]
 
     # start training
