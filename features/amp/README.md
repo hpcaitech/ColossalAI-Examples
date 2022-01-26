@@ -2,38 +2,49 @@
 
 Automatic Mixed Precision training provides significant arithmetic speedup by performing operations in half precision, and offers data transfer speedup by requiring less memory bandwidth. It also allocates less memory, enabling us to train larger models or train with larger batch size. In this example, we use one GPU to reproduce the training of Vision Transformer (ViT) on Caltech101 using colossalai. 
 
+You may refer to [our documentation on mixed precision training](https://colossalai.org/tutorials/basic_tutorials/use_auto_mixed_precision_in_training) for more details.
+
 # Prerequiste
+
 ```shell
-pip install scipy
+pip install timm scipy
 ```
 
 # How to run
-On a single server, you can directly use torch.distributed to start pre-training on multiple GPUs in parallel. In this example, we use `launch` for demo purpose. 
 
-In your terminal:
+On a single server, you can directly use `torch.distributed.launch` to start pre-training on multiple GPUs in parallel. In Colossal-AI, we provided fours ways to initialize the distributed environment. 
+
+1. `colossalai.launch`
+2. `colossalai.launch_from_torch`
+3. `colossalai.launch_from_slurm`
+4. `colossalai.launch_from_openmpi`
+
+The first launch method is the most general for different cases and the remaining methods are helper methods for different launchers. In this example, we use `launch_from_torch` for demo purpose. 
+
+The config file can be any file in the `config` directory:
+- `config_AMP_apex.py`: rely on [Nvidia APEX](https://github.com/NVIDIA/apex) for mixed precision training
+- `config_AMP_torch.py`: rely on [Torch CUDA AMP](https://pytorch.org/docs/stable/amp.html) for mixed precision training
+- `config_AMP_naive.py`: all operations are performed in fp16
+- `config_fp32.py`: all operations are performed in fp32
+
+
+> ❗️ You should run with 1 GPU first if you do not have a ready dataset. If you run with 4 GPUs, the dataset will be downloaded and extracted simulateneously and may be corrupted.
+
+You can invoke the following command to start training.
+
 ```shell
-python train.py --config config/config_fp32.py --rank <rank> --world_size <world_size> --host <node ip> --port 29500
-```
----
-
-If you are using `colossalai.launch_from_torch`, do this:
-In your training script:
-
-```python
-# initialize distributed setting
-parser = colossalai.get_default_parser()
-args = parser.parse_args()
-colossalai.launch_from_torch(config=args.config)
+python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr localhost --master_port 29500 train.py --config config/<config file>
 ```
 
-In your terminal
+For example, if you wish to run on 4 GPUs with Torch AMP.
+
 ```shell
-python -m torch.distributed.launch --nproc_per_node <world_size> train.py --config config/config_fp32.py --host <node ip> --port 29500
+python -m torch.distributed.launch --nproc_per_node 4 --master_addr localhost --master_port 29500 train.py --config config/config_AMP_torch.py
 ```
 
----
-If you are using `colossalai.launch_from_slurm`, do this:
-In your training script:
+__
+
+If you are using `colossalai.launch_from_slurm`, you can uncomment the `colossalai.launch_from_slurm` and comment out the `colossalai.launch_from_torch`.
 
 ```python
 # initialize distributed setting
@@ -44,11 +55,6 @@ colossalai.launch_from_slurm(config=args.config,
                             port=args.port,
                             backend=args.backend
                             )
-```
-
-In your terminal
-```shell
-python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr <node ip> --master_port 29500 train.py --config config/config_fp32.py 
 ```
 
 ```shell
