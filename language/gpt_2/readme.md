@@ -2,28 +2,29 @@
 
 ## Overview
 
-There are quantities of modes to run GPT in Colossal-ai. The `train_gpt.py` script runs training with the specific configuration scripts in `gpt2_configs/` for different parallelisms of GPT-2 . We have provided some modes of GPT-2 and you can modify  to use.
+In Colossal-AI, there are many ways to run GPT in a distributed manner. The `train_gpt.py` script runs training with the specific configuration scripts in `gpt2_configs/` for different parallelisms of GPT-2 . We have provided some example configuration files of GPT-2 and you can modify them to adapt to your own use.
 
-## Datasets
-We do not host any datasets for GPT or BERT training, however, we detail their collection so that our results may be reproduced.
+## How to Prepare Webtext Dataset
 
-### Collecting GPT Webtext Data
-We utilize the publicly available [OpenWebText](https://github.com/eukaryote31/openwebtext) library from [jcpeterson](https://github.com/jcpeterson/openwebtext) and  [eukaryote31's](https://github.com/eukaryote31/openwebtext) work to download urls. We then filtered, cleaned, and deduplicated all downloaded content according to the procedure described in Megatron's [openwebtext](./tools/openwebtext) directory. 
+We do not host any datasets for GPT or BERT training, however, we provide a detailed guide on how to prepare the dataset so that our results may be reproduced.
 
-#### Install necessary packages
+### Oveview
+We utilize the publicly available [OpenWebText](https://github.com/eukaryote31/openwebtext) library by [jcpeterson](https://github.com/jcpeterson/openwebtext) and  [eukaryote31's](https://github.com/eukaryote31/openwebtext) work to download urls to different web pages. We then filtered, cleaned, and deduplicated all downloaded content according to the procedure described in Megatron's [openwebtext](./tools/openwebtext) directory. 
 
-**Note: LSH requires GCC's early version. We have tested that version 9.3.0 is OK, while version 10.3.0 is not.**
+### Install necessary packages
+
+**Note: LSH requires GCC's early version. We have tested that version 9.3.0 works, but version 10.3.0 is not.**
 
 ```bash
-    pip install ftfy langdetect numpy torch pandas nltk sentencepiece boto3 tqdm regex bs4 newspaper3k htmlmin tldextract cached-path
-    git clone https://github.com/mattilyra/LSH.git
-    cd LSH
-    python setup.py install
+pip install ftfy langdetect numpy torch pandas nltk sentencepiece boto3 tqdm regex bs4 newspaper3k htmlmin tldextract cached-path
+git clone https://github.com/mattilyra/LSH.git
+cd LSH
+python setup.py install
 ```
 
-This GitHub repo may be out of data. If you couldn't install it successfully, please replace the `cMinhash.cpp` in `LSH/lsh` with ours, which is provided in `tools/lsh/cMinhash.cpp`.
+If you couldn't install it successfully, you may try to replace the `cMinhash.cpp` in `LSH/lsh` with ours, which is provided in `tools/lsh/cMinhash.cpp`.
 
-#### Download Data
+### Download Data
 
 1. Download the deduplicated URLs from [jcpeterson](https://mega.nz/#F!EZZD0YwJ!9_PlEQzdMVLaNdKv_ICNVQ!cc4RgQQZ).
 
@@ -31,16 +32,16 @@ This GitHub repo may be out of data. If you couldn't install it successfully, pl
 
 3. Remove blacklisted URLs. 
 
-   *We have forked Megatron-LM and fixed some bugs. For your easy using, we extract files we use to `tools/Megatron` with respect. Click [here](https://github.com/NVIDIA/Megatron-LM.git) to check the source code of Megatron-LM.*
+   *We appreciate Megatron-LM for making the data preprocessing code public. We have forked Megatron-LM and fixed some bugs. For your convenience, we have collated the needed files in `tools/Megatron`. Click [here](https://github.com/NVIDIA/Megatron-LM.git) to check the source code of Megatron-LM.*
 
    ```bash
    cd path/to/tools
    python Megatron/blacklist_urls.py <path/to/URLs> <path/to/clean_urls.txt>
    ```
 
-3. Download the content from the clean urls and merge the contents into one loose json file with 1 json per newline of the format `{'text': text, 'url': unique_url}`. 
+4. Download the content from the clean urls and merge the contents into one loose json file with 1 json per newline of the format `{'text': text, 'url': unique_url}`. 
 
-   *We have forked and modified [openwebtext](https://github.com/yet-another-account/openwebtext). And we fixed some bugs in it. For your easy using, we upload our modified version in `tools/download`.*
+   *We have forked and modified [openwebtext](https://github.com/yet-another-account/openwebtext) as there are some bugs in it. For your convenience, we provide our modified version in `tools/download`.*
    
    ```bash
    python download/download.py <path/to/clean_urls.txt> --n_procs 50 --output <path/to/raw.json>
@@ -80,37 +81,37 @@ This GitHub repo may be out of data. If you couldn't install it successfully, pl
    shuf <path/to/dedup.json> -o <path/to/train_data.json>
    ```
 
-## **USAGE**
+## **Usage**
 
 ```Bash
 #!/usr/bin/env sh
 export DATA=/path/to/train_data.json
 
-torchrun --standalone --nproc_per_node=no_gpus train_gpt.py --config=gpt2_configs/files --from_torch
+torchrun --standalone --nproc_per_node=<num_gpus> train_gpt.py --config=gpt2_configs/<config_file> --from_torch
 ```
 
-You can copy it and save it as `run.sh`. Then use `./run.sh` to run the script in your terminal.
+You can copy it and save it as `run.sh`. Then use `bash ./run.sh` to run the script in your terminal.
 
-Please modify `DATA`, `no_gpus` and `gpt2_configs/files` with the path to your dataset, the number of GPUs and the config file path, respectively.
+Please modify `DATA`, `num_gpus` and `config_file` with the path to your dataset, the number of GPUs and the config file path, respectively.
 
 ## GPT-2
 
 
 Here are the GPT-2 configs' default parameter:
 
-| config       | scale | GPU* | batch  size | MiB of each GPU                                 | TP   | PP   | DP   |
-| ------------ | ----- | ---- | ----------- | ----------------------------------------------- | ---- | ---- | ---- |
-| gpt2-vanilla | small | 1    | 1           | 6071                                            | 1    | 1    | 1    |
-| gpt2-vanilla | small | 2    | 1           | 6637, 6637                                      | 1    | 1    | 2    |
-| gpt2-1d      | small | 2    | 1           | 6269, 6269                                      | 2    | 1    | 1    |
-| gpt2-2d      | small | 4    | 1           | 6061, 6143, 6167, 6057                          | 4    | 1    | 1    |
-| gpt-2.5d     | small | 2    | 1           | 6335, 6347                                      | 2    | 1    | 1    |
-| gpt2-3d      | small | 8    | 1           | 6139, 6065, 6167, 6077, 6167, 6077, 6167, 6035  | 8    | 1    | 1    |
-| gpt2-pp      | small | 2    | 1           | 5483, 5877                                      | 1    | 2    | 1    |
-| gpt2-zero2   | small | 1    | 1           | 4485                                            | 1    | 1    | 1    |
-| gpt2-zero3   | small | 1    | 1           | 4701                                            | 1    | 1    | 1    |
-| gpt2-nvme    | small | 1    | 1           | 5067                                            | 1    | 1    | 1    |
-| gpt2-pp1d    | small | 8    | 8           | 4555, 4571, 5537, 5517, 4555, 4571, 5537, 5517, | 2    | 2    | 2    |
+| config       | scale | GPU* | batch  size | MiB of each GPU                                 | TP  | PP  | DP  |
+| ------------ | ----- | ---- | ----------- | ----------------------------------------------- | --- | --- | --- |
+| gpt2-vanilla | small | 1    | 1           | 6071                                            | 1   | 1   | 1   |
+| gpt2-vanilla | small | 2    | 1           | 6637, 6637                                      | 1   | 1   | 2   |
+| gpt2-1d      | small | 2    | 1           | 6269, 6269                                      | 2   | 1   | 1   |
+| gpt2-2d      | small | 4    | 1           | 6061, 6143, 6167, 6057                          | 4   | 1   | 1   |
+| gpt-2.5d     | small | 2    | 1           | 6335, 6347                                      | 2   | 1   | 1   |
+| gpt2-3d      | small | 8    | 1           | 6139, 6065, 6167, 6077, 6167, 6077, 6167, 6035  | 8   | 1   | 1   |
+| gpt2-pp      | small | 2    | 1           | 5483, 5877                                      | 1   | 2   | 1   |
+| gpt2-zero2   | small | 1    | 1           | 4485                                            | 1   | 1   | 1   |
+| gpt2-zero3   | small | 1    | 1           | 4701                                            | 1   | 1   | 1   |
+| gpt2-nvme    | small | 1    | 1           | 5067                                            | 1   | 1   | 1   |
+| gpt2-pp1d    | small | 8    | 8           | 4555, 4571, 5537, 5517, 4555, 4571, 5537, 5517, | 2   | 2   | 2   |
 
 *\*Note: For GPUs, we use Nvidia A100 80G.*
 
@@ -132,17 +133,14 @@ GPUS = TP * PP * DP
 Where DP is autoseted
 ```
 
-You can set the **batch size** and the **epoch** number by changing the number of `BATCH_SIZE` and 
+You can set the **batch size** and the **epoch** number by changing the number of 
+`BATCH_SIZE` and  `NUM_EPOCHS`, respectively. Then, we will introduce the config file of each mode.
 
-`NUM_EPOCHS`, respectively.
-
-Then we will introduce the config file of each mode.
-
-Notice `gpt2_zero2.py` and `gpt2_zero3.py` have nothing but `BATCH_SIZE` and `NUM_EPOCHS` to change.
+Please note that `gpt2_zero2.py` and `gpt2_zero3.py` have nothing but `BATCH_SIZE` and `NUM_EPOCHS` to change.
 
 #### **Vanilla & Data Parallel**
 
-`Vanilla` is the basic mode of GPT-2 with no parallel at all. However, if you use more than 1 GPU and TP * PP < no. of GPUs, Colossal-AI will **set DP for you** **automatically**.
+`Vanilla` is the basic mode of GPT-2 with no parallelism at all. However, if you use more than 1 GPU and TP * PP < no. of GPUs, Colossal-AI will **set DP for you** **automatically**.
 
 #### **1D, 2D, 2.5D, 3D**
 
@@ -153,23 +151,17 @@ TENSOR_PARALLEL = 2
 ```
 
 You can modify it to use more tensor parallel, just with the general rules satisfied.
-
-Specially, `TENSOR_PARALLEL` should be a square number and cubic number for 2D and 3D, respectively.
-
-And `TENSOR_PARALELL / DEPTH` should be a square number for 2.5D, for which the file is 
-
-```
-gpt2_2p5d.py
-```
+In particular, `TENSOR_PARALLEL` should be a square number and cubic number for 2D and 3D, 
+respectively, and `TENSOR_PARALELL / DEPTH` should be a square number for 2.5D.
 
 #### **Pipeline Parallel**
 
 In `gpt2_pp.py`, there are lines:
 
 ```Python
+# BATCH_SIZE / NUM_MICRO_BATCHES should be an interger
 NUM_MICRO_BATCHES = 1
 PIPELINE = 2  
-# where the type of BATCH_SIZE / NUM_MICRO_BATCHES should be an interger
 ```
 
 #### **nvme**
@@ -190,8 +182,6 @@ TENSOR_PARALLEL = 2
 MODE  = '1d'
 TENSOR_SHAPE = (BATCH_SIZE // NUM_MICRO_BATCHES, SEQ_LEN, HIDDEN_SIZE)
 ```
-We have introduced `BATCH_SIZE`, `NUM_EPOCHS`, `NUM_MICRO_BATCHES`, `PIPELINE`, `TENSOR_PARALLEL` above.
-
-`HIDDEN_SIZE` is related to the model, i.e. `gpt2_small` is 768.
-
+We have introduced `BATCH_SIZE`, `NUM_EPOCHS`, `NUM_MICRO_BATCHES`, `PIPELINE`, `TENSOR_PARALLEL` as discussed above. 
+`HIDDEN_SIZE` refers to the hidden dimension of the model, i.e. `gpt2_small` is 768.
 You can choose `None, '1d', '2d', '2.5d', '3d'` for `MODE`.
