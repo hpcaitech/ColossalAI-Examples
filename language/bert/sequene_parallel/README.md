@@ -109,13 +109,22 @@ DATA_PATH = '/home/Megatron-LM/my-bert_text_sentence'
 The `VOCAB_FILE_PATH` refers to the path to the vocabulary downloaded when you prepare the dataset 
 (e.g. bert-large-uncased-vocab.txt).
 
-### Step 2. Configure your parameters
+### Step 3. Make Dataset Helper
+
+Build BERT dataset helper. Requirements are `CUDA`, `g++`, `pybind11` and `make`.
+
+```python
+cd ./data/datasets
+make
+```
+
+### Step 3. Configure your parameters
 
 In the `config.py` provided, a set of parameters are defined including training scheme, model, etc.
 You can also modify the ColossalAI setting. For example, if you wish to parallelize over the 
 sequence diemsnion on 8 GPUs. You can change `size=4` to `size=8`. If you wish to use pipeline parallelism, you can set `pipeline=<num_of_pipeline_stages>`.
 
-### Step 3. Invoke parallel training
+### Step 4. Invoke parallel training
 
 Lastly, you can start training with sequence parallelism. How you invoke `train.py` depends on your 
 machine setting.
