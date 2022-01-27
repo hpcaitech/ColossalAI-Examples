@@ -2,7 +2,9 @@
 
 Automatic Mixed Precision training provides significant arithmetic speedup by performing operations in half precision, and offers data transfer speedup by requiring less memory bandwidth. It also allocates less memory, enabling us to train larger models or train with larger batch size. In this example, we use one GPU to reproduce the training of Vision Transformer (ViT) on Caltech101 using colossalai. 
 
-You may refer to [our documentation on mixed precision training](https://colossalai.org/tutorials/basic_tutorials/use_auto_mixed_precision_in_training) for more details.
+You may refer to [our documentation on mixed precision training](https://colossalai.org/tutorials/features/mixed_precision_training) for more details.
+
+> ⚠️ This example is only for demo purpose, no guarantee on the convergence performance
 
 # Prerequiste
 
@@ -33,13 +35,13 @@ The config file can be any file in the `config` directory:
 You can invoke the following command to start training.
 
 ```shell
-python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr localhost --master_port 29500 train.py --config config/<config file>
+python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr localhost --master_port 29500 train_with_engine.py --config config/<config file>
 ```
 
 For example, if you wish to run on 4 GPUs with Torch AMP.
 
 ```shell
-python -m torch.distributed.launch --nproc_per_node 4 --master_addr localhost --master_port 29500 train.py --config config/config_AMP_torch.py
+python -m torch.distributed.launch --nproc_per_node 4 --master_addr localhost --master_port 29500 train_with_engine.py --config config/config_AMP_torch.py
 ```
 
 __
@@ -95,5 +97,8 @@ We observed a significant reduction in memory usage. The amp methods also slight
 This is a [configuration file](https://colossalai.org/config.html) that defines hyperparameters and training scheme (fp16, gradient accumulation, etc.). The config content can be accessed through `gpc.config` in the program. By tuning the parallelism configuration, this example can be quickly deployed to a single server with several GPUs or to a large cluster with lots of nodes and GPUs. 
 
 
-`train.py`
-We start the training process using Colossal-AI.
+`train_with_engine.py`
+We start the training process using Colossal-AI with engine.
+
+`train_with_trainer.py`
+We start the training process using Colossal-AI with trainer.
