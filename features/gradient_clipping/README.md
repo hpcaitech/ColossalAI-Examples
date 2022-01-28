@@ -33,10 +33,9 @@ export DATA=$PWD/data
 The `torchvison` module will download the data automatically for you into the specified directory.
 
 
-## Verify Gradient Accumulation
+## Verify Gradient Clipping
 
-To verify gradinet accumulation, we can just check the change of parameter values. When gradient accumulation is set, parameters
-are only updated in the last step. 
+To verify gradinet clipping, we can just check the change of parameter values.  
 
 ```bash
 python -m torch.distributed.launch --nproc_per_node 1 --master_addr localhost --master_port 29500  train_with_engine.py
