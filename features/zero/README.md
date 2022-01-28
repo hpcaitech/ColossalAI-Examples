@@ -1,4 +1,4 @@
-# Gradient Accumulation
+# ZeRO
 
 ## Prepare Dataset
 
@@ -22,7 +22,7 @@ train_dataset = CIFAR10(
 
 Firstly, you need to specify where you want to store your CIFAR10 dataset by setting the environment variable `DATA`. 
 
-```bash
+```shell
 export DATA=/path/to/data
 
 # example
@@ -32,18 +32,10 @@ export DATA=$PWD/data
 
 The `torchvison` module will download the data automatically for you into the specified directory.
 
+## Run with ZeRO
 
-## Verify Gradient Accumulation
+To run with ZeRO, we just need to modify our config file. Assume your pytorch version >= 1.10, you can directly run as
 
-To verify gradient accumulation, we can just check the change of parameter values. When gradient accumulation is set, parameters
-are only updated in the last step. 
-
-```bash
-python -m torch.distributed.launch --nproc_per_node 1 --master_addr localhost --master_port 29500  train_with_engine.py
-```
-
-If you have PyTorch version >= 1.10, you can use `torchrun` instead.
-
-```bash
+```shell
 torchrun --standalone --nnodes=1 --nproc_per_node 1 train_with_engine.py
 ```
