@@ -35,15 +35,15 @@ The `torchvison` module will download the data automatically for you into the sp
 
 ## Verify Gradient Accumulation
 
-To verify gradinet accumulation, we can just check the change of parameter values. When gradient accumulation is set, parameters
+To verify gradient accumulation, we can just check the change of parameter values. When gradient accumulation is set, parameters
 are only updated in the last step. 
 
 ```bash
-python -m torch.distributed.launch --nproc_per_node 1 --master_addr localhost --master_port 29500  run_resnet_cifar10_with_engine.py
+python -m torch.distributed.launch --nproc_per_node 1 --master_addr localhost --master_port 29500  train_with_engine.py
 ```
 
 If you have PyTorch version >= 1.10, you can use `torchrun` instead.
 
 ```bash
-torchrun --standalone --nnodes=1 --nproc_per_node 1 run_resnet_cifar10_with_engine.py
+torchrun --standalone --nnodes=1 --nproc_per_node 1 train_with_engine.py
 ```
