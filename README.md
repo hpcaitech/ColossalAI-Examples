@@ -1,5 +1,7 @@
 # ColossalAI-Examples
 
+## Table of Content
+
 This repository contains examples of training models with ColossalAI. These examples fall under three categories:
 1. Computer Vision
     - ResNet
@@ -52,6 +54,8 @@ If you wish to add an example for a specific application, please follow the step
 
 1. create a folder in the `image`, `language` or `features` folders. Generally we do not accept new examples for `features` as one example is often enough. **We encourage contribution with hybrid parallel or models of different domains (e.g. GAN, self-supervised, detection, video understadning, text classification, text generation)**
 2. Prepare configuration files and `train.py`
-3. Prepare a detailed readme on envirionment setup, dataset preparation, code execution, etc.
+3. Prepare a detailed readme on envirionment setup, dataset preparation, code execution, etc. in your example folder
+4. Update the table of content (first section above) in this readme file
+
 
 If your PR is accepted, we may invite you to put up a tutorial or blog in [ColossalAI Documentation](https://colossalai.org/).
