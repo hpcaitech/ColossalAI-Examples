@@ -93,6 +93,7 @@ torchrun --standalone --nproc_per_node=<num_gpus> train_gpt.py --config=gpt2_con
 You can copy it and save it as `run.sh`. Then use `bash ./run.sh` to run the script in your terminal.
 
 Please modify `DATA`, `num_gpus` and `config_file` with the path to your dataset, the number of GPUs and the config file path, respectively.
+If you are going to train gpt3, just replace `gpt2_configs` with `gpt3_configs`.
 
 ## GPT-2
 
@@ -102,16 +103,16 @@ Here are the GPT-2 configs' default parameter:
 | config       | scale | GPU* | batch  size | MiB of each GPU                                 | TP  | PP  | DP  |
 | ------------ | ----- | ---- | ----------- | ----------------------------------------------- | --- | --- | --- |
 | gpt2-vanilla | small | 1    | 1           | 6071                                            | 1   | 1   | 1   |
-| gpt2-vanilla | small | 2    | 1           | 6637, 6637                                      | 1   | 1   | 2   |
-| gpt2-1d      | small | 2    | 1           | 6269, 6269                                      | 2   | 1   | 1   |
-| gpt2-2d      | small | 4    | 1           | 6061, 6143, 6167, 6057                          | 4   | 1   | 1   |
-| gpt-2.5d     | small | 2    | 1           | 6335, 6347                                      | 2   | 1   | 1   |
-| gpt2-3d      | small | 8    | 1           | 6139, 6065, 6167, 6077, 6167, 6077, 6167, 6035  | 8   | 1   | 1   |
-| gpt2-pp      | small | 2    | 1           | 5483, 5877                                      | 1   | 2   | 1   |
-| gpt2-zero2   | small | 1    | 1           | 4485                                            | 1   | 1   | 1   |
-| gpt2-zero3   | small | 1    | 1           | 4701                                            | 1   | 1   | 1   |
+| gpt2-vanilla | small | 2    | 1           | 6449*2                                     | 1   | 1   | 2   |
+| gpt2-1d      | small | 2    | 1           | 5287*2                                     | 2   | 1   | 1   |
+| gpt2-2d      | small | 4    | 1           | 4590*4                          | 4   | 1   | 1   |
+| gpt-2.5d     | small | 8    | 1           | 4815*8                                      | 8   | 1   | 1   |
+| gpt2-3d      | small | 8    | 1           | 4901*8  | 8   | 1   | 1   |
+| gpt2-pp      | small | 2    | 1           | 5877*2                                      | 1   | 2   | 1   |
+| gpt2-zero2   | small | 1    | 1           | 5459                                            | 1   | 1   | 1   |
+| gpt2-zero3   | small | 1    | 1           | 6577                                            | 1   | 1   | 1   |
 | gpt2-nvme    | small | 1    | 1           | 5067                                            | 1   | 1   | 1   |
-| gpt2-pp1d    | small | 8    | 8           | 4555, 4571, 5537, 5517, 4555, 4571, 5537, 5517, | 2   | 2   | 2   |
+| gpt2-pp1d    | small | 8    | 8           | 5411*8 | 2   | 2   | 2   |
 
 *\*Note: For GPUs, we use Nvidia A100 80G.*
 
@@ -185,3 +186,24 @@ TENSOR_SHAPE = (BATCH_SIZE // NUM_MICRO_BATCHES, SEQ_LEN, HIDDEN_SIZE)
 We have introduced `BATCH_SIZE`, `NUM_EPOCHS`, `NUM_MICRO_BATCHES`, `PIPELINE`, `TENSOR_PARALLEL` as discussed above. 
 `HIDDEN_SIZE` refers to the hidden dimension of the model, i.e. `gpt2_small` is 768.
 You can choose `None, '1d', '2d', '2.5d', '3d'` for `MODE`.
+
+## GPT-3
+
+GPT-3 is a really huge model, for which it seems not possible to train it with a little number of GPUs. Therefore, we choose some common sets of parameters instead of the smallest ones.
+
+Here are our default parameters of GPT-3 configs:
+
+| config         | GPU* | batch size | TP  | PP  | DP  |
+| -------------- | ---- | ---------- | --- | --- | --- |
+| gpt3_pp1d_min  | 96   | 192        | 4   | 24  | 1   |
+| gpt3_pp1d      | 128  | 192        | 4   | 32  | 1   |
+| gpt3_pp2d      | 96   | 2*48       | 4   | 24  | 1   |
+| gpt3_pp2p5d    | 96   | 2*48       | 4   | 24  | 1   |
+| gpt3_zero3_min | 64   | 3          | 1   | 1   | 64  |
+| gpt3_zero3     | 96   | 2          | 1   | 1   | 96  |
+
+*\*Note: we use Nvidia A100 40G GPUs*
+
+In the figure above, the suffix `_min` means the set of hyper-parameters requires the least number of GPUs with the same mode.
+
+GPT-3 and GPT-2 have the same set of hyper-parameters.

@@ -1,5 +1,5 @@
 from colossalai.amp import AMP_TYPE
-from model.gpt import GPT2_small
+from model_zoo.gpt.gpt import GPTLMLoss, gpt2_small
 from torch.optim import Adam
 #from deepspeed.ops.adam import DeepSpeedCPUAdam
 
@@ -46,6 +46,6 @@ optimizer = dict(
 )
 
 model = dict(
-    type=GPT2_small,
+    type=gpt2_small,
     checkpoint=True,
 )

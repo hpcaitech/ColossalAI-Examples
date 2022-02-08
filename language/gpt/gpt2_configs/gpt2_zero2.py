@@ -1,4 +1,4 @@
-from model.gpt import GPT2_small
+from model_zoo.gpt.gpt import gpt2_small
 from torch.optim import Adam
 
 
@@ -22,6 +22,6 @@ optimizer = dict(
 )
 
 model = dict(
-    type=GPT2_small,
+    type=gpt2_small,
     checkpoint=True,
 )

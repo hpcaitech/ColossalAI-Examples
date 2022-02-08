@@ -1,12 +1,13 @@
 from colossalai.amp import AMP_TYPE
-from model.gpt import GPTLMLoss, GPT2_small
+from model_zoo.gpt.gpt import GPTLMLoss, gpt2_small
 from torch.optim import Adam
 
 
 BATCH_SIZE = 1
 SEQ_LEN = 1024
 NUM_EPOCHS = 60
-TENSOR_PARALLEL = 8
+
+TENSOR_PARALLEL = 2
 
 optimizer = dict(
     type=Adam,
@@ -23,11 +24,11 @@ loss = dict(
 )
 
 model = dict(
-    type=GPT2_small,
+    type=gpt2_small,
     checkpoint=True,
 )
 
 parallel = dict(
     pipeline=1,
-    tensor=dict(size=TENSOR_PARALLEL, mode='3d'),
+    tensor=dict(size=TENSOR_PARALLEL, mode='1d'),
 )
