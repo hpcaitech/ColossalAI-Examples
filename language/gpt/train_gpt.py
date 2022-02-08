@@ -12,7 +12,7 @@ import torch.nn as nn
 from dataset.webtext import WebtextDataset
 import contextlib
 from colossalai.engine.schedule import PipelineSchedule, InterleavedPipelineSchedule
-from model.gpt import GPTLMLoss
+from model_zoo.gpt.gpt import GPTLMLoss
 from colossalai.utils import is_using_pp
 
 
