@@ -62,17 +62,48 @@ WARMUP_EPOCHS = 32
 
 ## How to Run
 
-As this script runs on more than 64 GPUs, we used SLURM scheduler to launch training. 
+Before you start training, you need to set the environment variable `DATA` so that the script knows where to fetch the data for DALI dataloader. If you do not know to make prepare the data for DALI dataloader, please jump to `How to Prepare ImageNet Dataset` section above.
+
+```shell
+export DATA=/path/to/ILSVRC2012
+```
+
+### Run on Multi-Node with SLURM
+As this script runs on multiple nodes with 64 GPUs, we used SLURM scheduler to launch training. 
 To execute training with `srun` provided by SLURM, you can use the following command.
 
 ```
 # use engine
-srun python train_with_engine.py --config ./configs/<config file> --host <node>
+srun python train_with_engine.py --config ./configs/<config file> --host <node> --port 29500
 
 # use trainer
-srun python train_with_trainer.py --config ./configs<config file> --host <node>
+srun python train_with_trainer.py --config ./configs<config file> --host <node> --port 29500
 ```
 
+### Run on Single-Node with PyTorch Launcher
+
+If you want to run experiments on a single node, you can use PyTorch Distributed Launcher Utility. First of all, you need to replace `colossalai.launch_from_slurm` with `colossalai.launch_from_torch`. The example code is as below.
+
+```python
+# initialize distributed setting
+parser = colossalai.get_default_parser()
+args = parser.parse_args()
+colossalai.launch_from_torch(config=args.config)
+```
+
+In your terminal
+```shell
+# If your torch >= 1.10.0
+torchrun --standalone --nproc_per_node <world_size>  train.py --config config.py
+
+# If your torch >= 1.9.0
+python -m torch.distributed.run --standalone --nproc_per_node=8 train.py --config config.py
+
+# Otherwise
+python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr <node_name> --master_port 29500 train.py --config ./config.py
+```
+
+### Using OpenMPI
 If you use `OpenMPI` or other launchers, you can refer to [Launch Colossal-AI](https://colossalai.org/tutorials/basic_tutorials/launch_colossalai).
 
 ## Performance Tuning

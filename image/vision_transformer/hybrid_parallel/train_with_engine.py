@@ -20,7 +20,7 @@ from model_zoo.vit.vit import _create_vit_model
 from tqdm import tqdm
 
 
-DATASET_PATH = '/project/scratch/p200012/dataset/ILSVRC2012_1k'
+DATASET_PATH = os.environ['DATA']
 
 TRAIN_RECS = DATASET_PATH + '/train/*'
 VAL_RECS = DATASET_PATH + '/validation/*'
