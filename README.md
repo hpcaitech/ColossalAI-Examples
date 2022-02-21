@@ -1,8 +1,29 @@
 # ColossalAI-Examples
 
+## Introduction
+
+This repository provides various examples for **Colossal-AI**. For each feature of 
+Colossal-AI, you can find a simple example in the `feature` folder and a corresponding tutorial in feature section of the [**documentation**](https://www.colossalai.org/). For more complex examples for domain-specific models, you can find them in this repository as well. Some of them are covered in the advanced tutorials 
+of the [**documentation**](https://www.colossalai.org/).
+
+### 🚀 Quick Links
+
+[**Colossal-AI**](https://github.com/hpcaitech/ColossalAI) | 
+[**Paper**](https://arxiv.org/abs/2110.14883) | 
+[**Documentation**](https://www.colossalai.org/) | 
+[**Forum**](https://github.com/hpcaitech/ColossalAI/discussions) | 
+[**Blog**](https://www.colossalai.org/) 
+
+## Setup
+
+```
+pip install -r requirements.txt
+```
+
 ## Table of Content
 
 This repository contains examples of training models with ColossalAI. These examples fall under three categories:
+
 1. Computer Vision
     - ResNet
     - SimCLR
