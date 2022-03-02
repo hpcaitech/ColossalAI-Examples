@@ -16,7 +16,7 @@ from colossalai.trainer.hooks import (AccuracyHook, LogMemoryByEpochHook,
                                       LRSchedulerHook, ThroughputHook)
 from colossalai.utils import MultiTimer, get_dataloader
 from colossalai.nn.loss import MoeCrossEntropyLoss
-from model_zoo.moe.models import Widenet
+from model_zoo.moe.models import Widenet, ViTMoE
 from colossalai.context.random import moe_set_seed
 
 DATASET_PATH = str(os.environ['DATA'])  # The directory of your dataset
@@ -62,27 +62,27 @@ def train_cifar():
             logger.log_to_file(log_path)
 
     moe_set_seed(42)
-    model = Widenet(
+    model = ViTMoE(
         num_experts=4,
-        capacity_factor=1.2,
+        capacity_factor=1.0,
         img_size=32,
         patch_size=4,
         num_classes=10,
         depth=6,
-        d_model=512,
-        num_heads=2,
-        d_kv=128,
-        d_ff=2048
+        d_model=256,
+        num_heads=4,
+        d_kv=64,
+        d_ff=512
     )
 
     train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE // gpc.data_parallel_size)
     criterion = MoeCrossEntropyLoss(aux_weight=0.01, label_smoothing=0.1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=gpc.config.LEARNING_RATE,
                                   weight_decay=gpc.config.WEIGHT_DECAY)
-
+    steps_per_epoch = len(train_dataloader)
     lr_scheduler = CosineAnnealingWarmupLR(optimizer=optimizer,
-                                           total_steps=gpc.config.NUM_EPOCHS,
-                                           warmup_steps=gpc.config.WARMUP_EPOCHS)
+                                           total_steps=gpc.config.NUM_EPOCHS * steps_per_epoch,
+                                           warmup_steps=gpc.config.WARMUP_EPOCHS * steps_per_epoch)
 
     engine, train_dataloader, test_dataloader, lr_scheduler = colossalai.initialize(model=model,
                                                                                     optimizer=optimizer,
@@ -103,7 +103,7 @@ def train_cifar():
         AccuracyHook(accuracy_func=Accuracy()),
         LossHook(),
         ThroughputHook(),
-        LRSchedulerHook(lr_scheduler=lr_scheduler, by_epoch=True)
+        LRSchedulerHook(lr_scheduler=lr_scheduler, by_epoch=False)
     ]
 
     logger.info("Train start", ranks=[0])
