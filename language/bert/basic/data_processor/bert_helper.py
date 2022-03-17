@@ -116,43 +116,7 @@ def get_batch(data_iterator):
     return tokens, types, sentence_order, loss_mask, lm_labels, padding_mask
 
 
-def get_batch_for_sequence_parallel(data_iterator):
-    """Build the batch."""
-
-    # Items and their type.
-    keys = ['text', 'types', 'labels', 'is_random', 'loss_mask', 'padding_mask']
-    datatype = torch.int64
-
-    # Broadcast data.
-    if data_iterator is not None:
-        data = next(data_iterator)
-    else:
-        data = None
-
-    # unpack
-    data_b = broadcast_data(keys, data, datatype)
-
-    # # get tensor parallel local rank
-    global_rank = torch.distributed.get_rank()
-    local_world_size = 1 if not gpc.is_initialized(ParallelMode.TENSOR) else gpc.get_world_size(ParallelMode.TENSOR)
-    local_rank = global_rank % local_world_size
-    seq_length = data_b['text'].size(1)
-    sub_seq_length = seq_length // local_world_size
-    sub_seq_start = local_rank * sub_seq_length
-    sub_seq_end = (local_rank+1) * sub_seq_length
-    #
-    # # Unpack.
-    tokens = data_b['text'][:, sub_seq_start:sub_seq_end].long()
-    types = data_b['types'][:, sub_seq_start:sub_seq_end].long()
-    sentence_order = data_b['is_random'].long()
-    loss_mask = data_b['loss_mask'][:, sub_seq_start:sub_seq_end].float()
-    lm_labels = data_b['labels'][:, sub_seq_start:sub_seq_end].long()
-    padding_mask = data_b['padding_mask'].long()
-
-    return tokens, types, sentence_order, loss_mask, lm_labels, padding_mask
-
-
-class SequenceParallelDataIterator:
+class ParallelDataIterator:
 
     def __init__(self, data_iter):
         self.data_iter = data_iter
@@ -162,4 +126,4 @@ class SequenceParallelDataIterator:
         return self.data_iter
 
     def __next__(self):
-        return get_batch_for_sequence_parallel(self.data_iter)
+        return get_batch(self.data_iter)
