@@ -18,7 +18,7 @@ class GPTLMModel(nn.Module):
         self.model = GPT2LMHeadModel(GPT2Config(n_embd=hidden_size, n_layer=num_layers,
                                      n_head=num_attention_heads, n_positions=max_seq_len, n_ctx=max_seq_len, vocab_size=vocab_size))
         if checkpoint:
-            self.model.transformer.gradient_checkpointing = True
+            self.model.gradient_checkpointing_enable()
 
     def forward(self, input_ids, attention_mask):
         # Only return lm_logits
@@ -73,10 +73,10 @@ def main():
     optimizer = ShardedOptimizerV2(model, CPUAdam, cpu_offload=True, lr=1e-3)
     logger.info(f'GPU memory usage after init optim: {torch.cuda.memory_allocated() / 1024**2:.2f} MB', ranks=[0])
 
+    model.train()
     for n in range(NUM_STEPS):
         # we just use randomly generated data here
         input_ids, attn_mask = get_data(BATCH_SIZE, SEQ_LEN, VOCAB_SIZE)
-        model.train()
         optimizer.zero_grad()
         outputs = model(input_ids, attn_mask)
         loss = criterion(outputs, input_ids)
