@@ -115,6 +115,7 @@ Here are the GPT-2 configs' default parameter:
 | gpt2-pp1d    | small | 8    | 8           | 5411*8 | 2   | 2   | 2   |
 
 *\*Note: For GPUs, we use Nvidia A100 80G.*
+*\*Note: Results of ZeRO are outdated, we will update them soon.*
 
 **We set** `TENSOR_PARALLEL` `PIPELINE_PARALLEL` **and** `DATA_PARALLEL` **as small as it can be to run every demo with the least number of GPUs.**
 
@@ -137,7 +138,7 @@ Where DP is autoseted
 You can set the **batch size** and the **epoch** number by changing the number of 
 `BATCH_SIZE` and  `NUM_EPOCHS`, respectively. Then, we will introduce the config file of each mode.
 
-Please note that `gpt2_zero2.py` and `gpt2_zero3.py` have nothing but `BATCH_SIZE` and `NUM_EPOCHS` to change.
+Please note that `gpt2_zero3.py` has nothing but `BATCH_SIZE` and `NUM_EPOCHS` to change.
 
 #### **Vanilla & Data Parallel**
 
@@ -164,10 +165,6 @@ In `gpt2_pp.py`, there are lines:
 NUM_MICRO_BATCHES = 1
 PIPELINE = 2  
 ```
-
-#### **nvme**
-
-If you want to use nvme, run `apt update && apt install libaio-dev` to prepare the environment and change the `nvme_path` in `zero = dict(...)`. Be aware of that `nvme_path` should be the path your local file system.
 
 #### **Pipeline + 1D + Data Parallel**
 
@@ -203,6 +200,7 @@ Here are our default parameters of GPT-3 configs:
 | gpt3_zero3     | 96   | 2          | 1   | 1   | 96  |
 
 *\*Note: we use Nvidia A100 40G GPUs*
+*\*Note: Results of ZeRO are outdated, we will update them soon.*
 
 In the figure above, the suffix `_min` means the set of hyper-parameters requires the least number of GPUs with the same mode.
 
