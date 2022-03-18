@@ -69,8 +69,9 @@ def main():
     criterion = GPTLMLoss()
 
     # optimizer
+    optimizer = CPUAdam(model.parameters(), lr=1e-3)
     # Enable CPU offload for optimizer states
-    optimizer = ShardedOptimizerV2(model, CPUAdam, cpu_offload=True, lr=1e-3)
+    optimizer = ShardedOptimizerV2(model, optimizer, cpu_offload=True, initial_scale=2**5)
     logger.info(f'GPU memory usage after init optim: {torch.cuda.memory_allocated() / 1024**2:.2f} MB', ranks=[0])
 
     model.train()
