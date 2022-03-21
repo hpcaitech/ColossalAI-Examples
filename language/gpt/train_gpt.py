@@ -48,7 +48,7 @@ def main():
     use_pipeline = is_using_pp()
     use_interleaved = hasattr(gpc.config.model, 'num_chunks')
     use_zero3 = hasattr(gpc.config, 'zero')
-    assert not (use_pipeline and use_zero3), "We don't support using ZeRO with pipeline parallel now."
+
     ctx = contextlib.nullcontext()
     if use_zero3:
         ctx = ZeroInitContext(convert_fp16=True,
