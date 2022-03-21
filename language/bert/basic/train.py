@@ -1,6 +1,6 @@
 from utils import load_data_wiki
 
-dataset_name = 'wikitext-103-v1'
+dataset_name = 'wikitext-103'
 batch_size, max_len = 512, 64
 train_iter, vocab = load_data_wiki(dataset_name, batch_size, max_len)
 

@@ -4,10 +4,10 @@ import zipfile
 import requests
 
 DATASET = dict()
-DATASET['wikitext-2-v1'] = (
+DATASET['wikitext-2'] = (
     'https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-2-v1.zip'
 )
-DATASET['wikitext-103-v1'] = (
+DATASET['wikitext-103'] = (
     'https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip'
 )
 DEFAULT_CACHE_PATH = 'data'
@@ -19,6 +19,7 @@ def download(name, cache_dir=os.path.join('..', DEFAULT_CACHE_PATH)):
     os.makedirs(cache_dir, exist_ok=True)
     fname = os.path.join(cache_dir, url.split('/')[-1])
     if os.path.exists(fname):
+        print(f'Cached {fname} is loading...')
         return fname  # Hit cache
     print(f'Downloading {fname} from {url}...')
     r = requests.get(url, stream=True, verify=True)

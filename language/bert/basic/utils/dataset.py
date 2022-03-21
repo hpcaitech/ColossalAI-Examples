@@ -44,7 +44,7 @@ def _get_nsp_data_from_paragraph(paragraph, paragraphs, max_len):
 # num_mlm_preds: the number of predictions (recall 15% random tokens to predict)
 def _replace_mlm_tokens(tokens, candidata_pred_postions, num_mlm_preds, vocab):
     # The input may contain replaced '<mask>' or random tokens
-    mlm_input_tokens = [token for token in tokens]
+    mlm_input_tokens = tokens[:]
     pred_positions_and_labels = []
     # Shuffle for getting 15% random tokens for prediction
     random.shuffle(candidata_pred_postions)
@@ -57,7 +57,7 @@ def _replace_mlm_tokens(tokens, candidata_pred_postions, num_mlm_preds, vocab):
             masked_token = '<mask>'
         else:
             # 10% keep the word unchanged
-            if random.random < 0.5:
+            if random.random() < 0.5:
                 masked_token = tokens[mlm_pred_postion]
             # 10% replace the word with a random word
             else:
@@ -80,7 +80,7 @@ def _get_mlm_data_from_tokens(tokens, vocab):
     pred_positions_and_labels = sorted(pred_positions_and_labels, key = lambda x: x[0])
     pred_positions = [x[0] for x in pred_positions_and_labels]
     mlm_pred_labels = [x[1] for x in pred_positions_and_labels]
-    return vocab[mlm_input_tokens], pred_positions, mlm_pred_labels
+    return vocab[mlm_input_tokens], pred_positions, vocab[mlm_pred_labels]
 
 # Append special <mask> tokens into the inputs and padding them together
 # exmaples: outputs from  _get_nsp_data_from_paragraph and _get_mlm_data_from_tokens
@@ -128,16 +128,18 @@ class _WikiTextDataset(torch.utils.data.Dataset):
         self.vocab = Vocab(sentences, min_freq=5,
             reserved_tokens=['<pad>', '<mask>', '<cls>', '<sep>'])
         # Get data for the next sentence prediction task
+        print("Get data for the next sentence prediction task...")
         examples = []
         for paragraph in paragraphs:
-            examples.append(_get_nsp_data_from_paragraph(
-                paragraph, paragraphs, self.vocab, max_len))
+            examples.extend(_get_nsp_data_from_paragraph(paragraph, paragraphs, max_len))
         # Get data for the masked language model task
+        print("Get data for the masked language model task...")
         examples = [(_get_mlm_data_from_tokens(tokens, self.vocab)
                       + (segments, is_next))
                      for tokens, segments, is_next in examples]
 
         # Padding
+        print("Padding inputs...")
         (self.all_token_ids, self.all_segments, self.valid_lens,
          self.all_pred_positions, self.all_mlm_weights,
          self.all_mlm_labels, self.nsp_labels) = _pad_bert_inputs(
