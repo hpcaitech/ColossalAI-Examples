@@ -162,10 +162,10 @@ def _read_wiki(data_dir):
     random.shuffle(paragraphs)
     return paragraphs
 
-def load_data_wiki(batch_size, max_len):
+def load_data_wiki(dataset_name, batch_size, max_len):
     """Load the WikiText-2 dataset."""
     num_workers = NUM_DOWNLOAD_WORKERS
-    data_dir = download_extract('wikitext-2', 'wikitext-2')
+    data_dir = download_extract(dataset_name, dataset_name)
     paragraphs = _read_wiki(data_dir)
     train_set = _WikiTextDataset(paragraphs, max_len)
     train_iter = torch.utils.data.DataLoader(train_set, batch_size, shuffle=True, num_workers=num_workers)
