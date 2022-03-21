@@ -1,19 +1,23 @@
-from colossalai.context.parallel_mode import ParallelMode
-from colossalai.logging import get_dist_logger, disable_existing_loggers
-import colossalai
-import os
-from colossalai.core import global_context as gpc
-from colossalai.utils.timer import MultiTimer
-from colossalai.zero import zero3_model_context
-import colossalai.utils as utils
-from colossalai.trainer import hooks, Trainer
-from colossalai.nn import LinearWarmupLR
-import torch.nn as nn
-from dataset.webtext import WebtextDataset
 import contextlib
-from colossalai.engine.schedule import PipelineSchedule, InterleavedPipelineSchedule
-from model_zoo.gpt.gpt import GPTLMLoss
+import os
+
+import colossalai
+import colossalai.utils as utils
+import torch
+import torch.nn as nn
+from colossalai.context.parallel_mode import ParallelMode
+from colossalai.core import global_context as gpc
+from colossalai.engine.schedule import (InterleavedPipelineSchedule,
+                                        PipelineSchedule)
+from colossalai.logging import disable_existing_loggers, get_dist_logger
+from colossalai.nn import LinearWarmupLR
+from colossalai.trainer import Trainer, hooks
 from colossalai.utils import is_using_pp
+from colossalai.utils.timer import MultiTimer
+from colossalai.zero.init_ctx import ZeroInitContext
+from model_zoo.gpt.gpt import GPTLMLoss
+
+from dataset.webtext import WebtextDataset
 
 
 def main():
@@ -43,8 +47,15 @@ def main():
     logger.info('Build model', ranks=[0])
     use_pipeline = is_using_pp()
     use_interleaved = hasattr(gpc.config.model, 'num_chunks')
-    use_zero3 = hasattr(gpc.config, 'zero') and gpc.config.zero.level == 3
-    ctx = zero3_model_context() if use_zero3 else contextlib.nullcontext()
+    use_zero3 = hasattr(gpc.config, 'zero')
+    assert not (use_pipeline and use_zero3), "We don't support using ZeRO with pipeline parallel now."
+    ctx = contextlib.nullcontext()
+    if use_zero3:
+        ctx = ZeroInitContext(convert_fp16=True,
+                              target_device=torch.cuda.current_device(),
+                              shard_strategy=gpc.config.zero.model_config.shard_strategy,
+                              shard_param=True
+                              )
     with ctx:
         model = gpc.config.model.pop('type')(**gpc.config.model)
     if use_pipeline and use_interleaved and not isinstance(model, nn.ModuleList):
