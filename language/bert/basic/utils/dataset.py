@@ -14,7 +14,7 @@ def _get_tokens_and_segments(tokens_a, tokens_b = None):
     # 0 and 1 are marking segment A and B respectively
     segments = [0] * (len(tokens_a) + 2)
     if tokens_b is not None:
-        tokens_b += tokens_b + ['<sep>']
+        tokens += tokens_b + ['<sep>']
         segments += [1] * (len(tokens_b) + 1)
     return tokens, segments
 
@@ -89,12 +89,13 @@ def _pad_bert_inputs(examples, max_len, vocab):
     all_token_ids, all_segments, valid_lens = [], [], []
     all_pred_positions, all_mlm_weights, all_mlm_labels = [], [], []
     nsp_labels = []
-    for (token_ids, pred_positions, mlm_pred_label_ids, segments, is_next) in examples:
+    for (token_ids, pred_positions, mlm_pred_label_ids, segments,
+         is_next) in examples:
         all_token_ids.append(torch.tensor(token_ids + [vocab['<pad>']] * (
             max_len - len(token_ids)), dtype=torch.long))
         all_segments.append(torch.tensor(segments + [0] * (
             max_len - len(segments)), dtype=torch.long))
-        # valid_lens excludes count of '<pad>' tokens
+        # `valid_lens` excludes count of '<pad>' tokens
         valid_lens.append(torch.tensor(len(token_ids), dtype=torch.float32))
         all_pred_positions.append(torch.tensor(pred_positions + [0] * (
             max_num_mlm_preds - len(pred_positions)), dtype=torch.long))
