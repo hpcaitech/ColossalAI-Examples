@@ -107,8 +107,7 @@ class MultiHeadAttention(nn.Module):
         # After transposing, shape of output `queries`, `keys`, or `values`:
         # (`batch_size` * `num_heads`, no. of queries or key-value pairs,
         # `num_hiddens` / `num_heads`)
-        queries = 
-        (self.W_q(queries), self.num_heads)
+        queries = transpose_qkv(self.W_q(queries), self.num_heads)
         keys = transpose_qkv(self.W_k(keys), self.num_heads)
         values = transpose_qkv(self.W_v(values), self.num_heads)
 

@@ -1,10 +1,9 @@
 import torch
 from torch import nn
-from .utils.dataset import load_data_wiki
-from .utils.bert import BERTModel
+from utils.dataset import load_data_wiki
+from utils.bert import BERTModel
 '''Profiling'''
-from .utils.timer import Timer
-from .utils.plot import Animator, Accumulator
+from utils.profile import Timer, Accumulator
 '''Profiling'''
 
 # BERT Loss for mlm and nsp
@@ -36,7 +35,6 @@ def train(train_iter, model, loss, optim, vocab_size, devices, num_steps):
 
     '''Profiling'''
     timer = Timer()
-    animator = Animator(xlabel = 'step', ylabel = 'loss', xlim = [1, num_steps], legend = ['mlm', 'nsp'])
     metric = Accumulator(4)
     '''Profiling'''
 
@@ -65,7 +63,6 @@ def train(train_iter, model, loss, optim, vocab_size, devices, num_steps):
             '''Profiling'''
             metric.add(mlm_l, nsp_l, tokens_X.shape[0], 1)
             timer.stop()
-            animator.add(step + 1, (metric[0] / metric[3], metric[1] / metric[3]))
             '''Profiling'''
             step += 1
             if step == num_steps:
