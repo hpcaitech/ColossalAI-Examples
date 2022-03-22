@@ -9,9 +9,12 @@ depends on the topology and bandwith of the network in running environment. Anot
 since we have a larger model thanks to MoE. We will continuously maintain and optimize our MoE system
 and be encouraged by any issue that can help us improve our system.
 
-At present, we have provided Widenet and ViT-MoE in our model zoo. More information about Widenet can be 
-found [here](https://arxiv.org/abs/2107.11817). Here is a simple example about how to run ViT-MoE Lite6
-on cifar10 with 4 experts.
+At present, we have provided Widenet and ViT-MoE in our model zoo (more information about Widenet can be 
+found [here](https://arxiv.org/abs/2107.11817)). We now support a recent tecnique proposed by Microsoft, PR-MoE.
+You can access [here](https://arxiv.org/abs/2201.05596) to know more about PR-MoE.
+Directly use ViT-MoE in our model zoo or use MoeModule in your model to exploit PR-MoE.
+
+Here is a simple example about how to run ViT-MoE Lite6 with PR-MoE on cifar10.
 
 # How to run
 
@@ -37,5 +40,6 @@ Make sure to initialize moe running environment by `moe_set_seed` before buildin
 
 # Result
 
-The result of training ViT-MoE Lite6 on cifar10 from scratch is 90.56%. The result can be improved by data
-augmentations such as mixup and Randaug. We will offer those training scripts soon.
+The best evaluation accuracy during training ViT-MoE Lite6 on cifar10 from scratch is 90.66%, which is better than average
+performance in training ViT Lite7. The result can be improved by data augmentations such as mixup and Randaug.
+We will offer those training scripts soon.

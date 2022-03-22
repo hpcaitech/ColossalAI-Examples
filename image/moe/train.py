@@ -17,7 +17,7 @@ from colossalai.trainer.hooks import (AccuracyHook, LogMemoryByEpochHook,
 from colossalai.utils import MultiTimer, get_dataloader
 from colossalai.nn.loss import MoeCrossEntropyLoss
 from model_zoo.moe.models import Widenet, ViTMoE
-from colossalai.context.random import moe_set_seed
+from colossalai.core import MOE_CONTEXT
 
 DATASET_PATH = str(os.environ['DATA'])  # The directory of your dataset
 
@@ -51,7 +51,7 @@ def build_cifar(batch_size):
 
 def train_cifar():
     args = colossalai.get_default_parser().parse_args()
-    colossalai.launch_from_torch(config=args.config)
+    colossalai.launch_from_torch(config=args.config)  # initialize colossal environment
 
     logger = get_dist_logger()
     if hasattr(gpc.config, 'LOG_PATH'):
@@ -61,10 +61,11 @@ def train_cifar():
                 os.mkdir(log_path)
             logger.log_to_file(log_path)
 
-    moe_set_seed(42)
+    MOE_CONTEXT.setup(42)  # don't forget to initialize MoE environment
+
     model = ViTMoE(
-        num_experts=4,
-        capacity_factor=1.0,
+        num_experts=[4, 4, 8],  # the number of experts in every layer
+        use_residual=True,  # we use PR-MoE here
         img_size=32,
         patch_size=4,
         num_classes=10,
