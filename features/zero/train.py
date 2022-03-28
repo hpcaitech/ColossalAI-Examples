@@ -81,7 +81,7 @@ def main():
     # build GPT model
     shard_strategy = TensorShardStrategy()
     with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True):
-        model = gpt2_10b(checkpoint=True)
+        model = gpt2_medium(checkpoint=True)
     # Enable CPU offload for parameters and gradients
     model = ShardedModelV2(model, shard_strategy, offload_config={'device': 'cpu'}, reuse_fp16_shard=True)
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
