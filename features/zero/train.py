@@ -1,5 +1,6 @@
 
 import colossalai
+import psutil
 import torch
 import torch.nn as nn
 from colossalai.logging import disable_existing_loggers, get_dist_logger
@@ -47,6 +48,26 @@ def gpt2_medium(checkpoint=False):
     return GPTLMModel(hidden_size=1024, num_layers=24, num_attention_heads=16, checkpoint=checkpoint)
 
 
+def gpt2_xl(checkpoint=True):
+    return GPTLMModel(hidden_size=1600, num_layers=48, num_attention_heads=32, checkpoint=checkpoint)
+
+
+def gpt2_10b(checkpoint=True):
+    return GPTLMModel(hidden_size=4096, num_layers=50, num_attention_heads=16, checkpoint=checkpoint)
+
+
+def get_cpu_mem():
+    return psutil.Process().memory_info().rss / 1024**2
+
+
+def get_gpu_mem():
+    return torch.cuda.memory_allocated() / 1024**2
+
+
+def get_mem_info(prefix=''):
+    return f'{prefix}GPU memory usage: {get_gpu_mem():.2f} MB, CPU memory usage: {get_cpu_mem():.2f} MB'
+
+
 def main():
     BATCH_SIZE = 8
     SEQ_LEN = 1024
@@ -56,14 +77,14 @@ def main():
     colossalai.launch_from_torch(config={})
     logger = get_dist_logger()
 
-    logger.info(f'GPU memory usage: {torch.cuda.memory_allocated() / 1024**2:.2f} MB', ranks=[0])
+    logger.info(get_mem_info(), ranks=[0])
     # build GPT model
     shard_strategy = TensorShardStrategy()
-    with ZeroInitContext(convert_fp16=True, target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True):
+    with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True):
         model = gpt2_medium(checkpoint=True)
     # Enable CPU offload for parameters and gradients
-    model = ShardedModelV2(model, shard_strategy, offload_config={'device': 'cpu'})
-    logger.info(f'GPU memory usage after init model: {torch.cuda.memory_allocated() / 1024**2:.2f} MB', ranks=[0])
+    model = ShardedModelV2(model, shard_strategy, offload_config={'device': 'cpu'}, reuse_fp16_shard=True)
+    logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
 
     # build criterion
     criterion = GPTLMLoss()
@@ -72,7 +93,7 @@ def main():
     optimizer = CPUAdam(model.parameters(), lr=1e-3)
     # Enable CPU offload for optimizer states
     optimizer = ShardedOptimizerV2(model, optimizer, cpu_offload=True, initial_scale=2**5)
-    logger.info(f'GPU memory usage after init optim: {torch.cuda.memory_allocated() / 1024**2:.2f} MB', ranks=[0])
+    logger.info(get_mem_info(prefix='After init optim, '), ranks=[0])
 
     model.train()
     for n in range(NUM_STEPS):
@@ -81,10 +102,11 @@ def main():
         optimizer.zero_grad()
         outputs = model(input_ids, attn_mask)
         loss = criterion(outputs, input_ids)
+        logger.info(get_mem_info(prefix=f'Forward [{n+1}/{NUM_STEPS}] '), ranks=[0])
         optimizer.backward(loss)
+        logger.info(get_mem_info(prefix=f'Backward [{n+1}/{NUM_STEPS}] '), ranks=[0])
         optimizer.step()
-        logger.info(
-            f'Step [{n+1}/{NUM_STEPS}] GPU memory usage: {torch.cuda.memory_allocated() / 1024**2:.2f} MB', ranks=[0])
+        logger.info(get_mem_info(prefix=f'Optimizer step [{n+1}/{NUM_STEPS}] '), ranks=[0])
 
 
 if __name__ == '__main__':

@@ -51,8 +51,7 @@ def main():
 
     ctx = contextlib.nullcontext()
     if use_zero3:
-        ctx = ZeroInitContext(convert_fp16=True,
-                              target_device=torch.cuda.current_device(),
+        ctx = ZeroInitContext(target_device=torch.cuda.current_device(),
                               shard_strategy=gpc.config.zero.model_config.shard_strategy,
                               shard_param=True
                               )
