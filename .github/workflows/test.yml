@@ -28,6 +28,19 @@ jobs:
         pip install -r requirements/requirements.txt
         pip install -v --no-cache-dir .
     - uses: actions/checkout@v2
+    - name: Test Feature/AMP
+      run: |
+        cd features/amp
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_apex.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_naive.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_torch.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_fp32.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_apex.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_naive.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_torch.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_fp32.py
+      env:
+        DATA: /data
     - name: Test Feature/Gradient Accumulation
       run: |
         cd features/gradient_accumulation
