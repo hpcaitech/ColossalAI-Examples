@@ -79,3 +79,15 @@ jobs:
         python -m torch.distributed.run --standalone --nproc_per_node=4 run_resnet_cifar10_with_trainer.py
       env:
         DATA: /data/cifar-10
+    - name: Test Image/ViT Data Parallel
+      run: |
+        cd image/vision_transformer/data_parallel
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train.py --config config.py
+      env:
+        DATA: /data/imagenet-100
+    - name: Test Image/ViT Pipeline Parallel
+      run: |
+        cd image/vision_transformer/pipeline_parallel
+        python -m torch.distributed.run --standalone --nproc_per_node=2 vit.py
+      env:
+        DATA: /data/cifar-10
