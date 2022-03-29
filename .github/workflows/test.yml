@@ -31,4 +31,8 @@ jobs:
     - name: Test ZeRO
       run: |
         cd features/zero
-        torchrun --standalone --nproc_per_node=1 train.py
+        python -m torch.distributed.run --standalone --nproc_per_node=1 train.py
+    - name: Test Gradient Clipping
+      run: |
+        cd features/gradient_clipping
+        python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node 1 train_with_engine.py
