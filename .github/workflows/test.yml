@@ -93,6 +93,9 @@ jobs:
       run: |
         cd language/gpt
         python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_1d.py
+        python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_2d.py
+        python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_2p5d.py
+        python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_3d.py
         python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_pp.py
         python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_pp1d.py
         python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_vanilla.py
@@ -100,4 +103,3 @@ jobs:
         python -m torch.distributed.run --standalone --nproc_per_node=8 train_gpt.py --from_torch --config gpt2_configs/gpt2_zero3.py
       env:
         DATA: /data/gpt_data/small-gpt-dataset.json
-      #FIXME(ver217): 2d/2.5d/3d will raise exception now. Test them when bugs are fixed.
