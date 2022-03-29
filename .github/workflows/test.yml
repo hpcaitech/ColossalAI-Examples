@@ -10,7 +10,7 @@ jobs:
     # if: github.ref_name == 'main' && github.repository == 'hpcaitech/ColossalAI-Examples' && contains(fromJson('["FrankLeeeee", "ver217", "feifeibear", "kurisusnowdeng"]'), github.actor)
     name: Build ColossalAI and test examples
     runs-on: [self-hosted, gpu]
-    timeout-minutes: 20
+    timeout-minutes: 60
     container:
       image: nvcr.io/nvidia/pytorch:21.07-py3
       options: --gpus all --rm --ipc=host -v /data/scratch:/data
@@ -38,6 +38,21 @@ jobs:
       run: |
         cd features/gradient_clipping
         python -m torch.distributed.run --standalone --nproc_per_node=1 train_with_engine.py
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Pipeline Parallel
+      run: |
+        cd features/pipeline_parallel
+        python -m torch.distributed.run --standalone --nproc_per_node=4 resnet.py
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Tensor Parallel
+      run: |
+        cd features/tensor_parallel
+        python -m torch.distributed.run --standalone --nproc_per_node=2 tensor_parallel_1d.py --from_torch
+        python -m torch.distributed.run --standalone --nproc_per_node=4 tensor_parallel_2d.py --from_torch
+        python -m torch.distributed.run --standalone --nproc_per_node=8 tensor_parallel_2p5d.py --from_torch
+        python -m torch.distributed.run --standalone --nproc_per_node=8 tensor_parallel_3d.py --from_torch
       env:
         DATA: /data/cifar-10
     - name: Test Feature/Zero
