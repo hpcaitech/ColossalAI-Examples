@@ -1,7 +1,7 @@
 from colossalai.amp import AMP_TYPE
 
 BATCH_SIZE = 128
-NUM_EPOCHS = 200
+NUM_EPOCHS = 2
 
 CONFIG = dict(
     fp16=dict(
