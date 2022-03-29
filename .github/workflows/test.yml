@@ -28,13 +28,20 @@ jobs:
         pip install -r requirements/requirements.txt
         pip install -v --no-cache-dir .
     - uses: actions/checkout@v2
-    - name: Test ZeRO
+    - name: Test Feature/Gradient Accumulation
+      run: |
+        cd features/gradient_accumulation
+        python -m torch.distributed.run --standalone --nproc_per_node=1 train_with_engine.py
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Gradient Clipping
+      run: |
+        cd features/gradient_clipping
+        python -m torch.distributed.run --standalone --nproc_per_node=1 train_with_engine.py
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Zero
       run: |
         cd features/zero
         python -m torch.distributed.run --standalone --nproc_per_node=1 train.py
-    - name: Test Gradient Clipping
-      run: |
-        cd features/gradient_clipping
-        python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node 1 train_with_engine.py
-      env:
-          DATA: /data/cifar-10
+  
