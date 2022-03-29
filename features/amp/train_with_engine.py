@@ -89,7 +89,7 @@ def main():
     # build trainer
     engine.train()
     for epoch in range(gpc.config.NUM_EPOCHS):
-        for img, label in enumerate(train_dataloader):
+        for img, label in train_dataloader:
             img = img.cuda()
             label = label.cuda()
             engine.zero_grad()
