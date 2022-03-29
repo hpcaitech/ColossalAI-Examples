@@ -154,7 +154,7 @@ def build_cifar(batch_size):
 # Train
 
 BATCH_SIZE = 64
-NUM_EPOCHS = 60
+NUM_EPOCHS = 2
 NUM_CHUNKS = 1
 CONFIG = dict(parallel=dict(pipeline=2))
 
@@ -179,7 +179,7 @@ def train():
     # build dataloader
     train_dataloader, test_dataloader = build_cifar(BATCH_SIZE)
 
-    lr_scheduler = col_nn.lr_scheduler.LinearWarmupLR(optimizer, NUM_EPOCHS, warmup_steps=5)
+    lr_scheduler = col_nn.lr_scheduler.LinearWarmupLR(optimizer, NUM_EPOCHS, warmup_steps=1)
     engine, train_dataloader, test_dataloader, lr_scheduler = colossalai.initialize(model, optimizer, criterion,
                                                                                     train_dataloader, test_dataloader, lr_scheduler)
     timer = MultiTimer()
