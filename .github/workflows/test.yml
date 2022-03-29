@@ -1,6 +1,9 @@
 name: Test Examples
 
-on: workflow_dispatch
+# on: workflow_dispatch
+on: 
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 jobs:
   test:
