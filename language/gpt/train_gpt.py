@@ -120,7 +120,8 @@ def main():
         test_interval=1,
         hooks=hook_list,
         display_progress=True,
-        return_output_label=False
+        return_output_label=False,
+        max_steps=100
     )
 
 
