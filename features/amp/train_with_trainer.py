@@ -1,12 +1,13 @@
 import os
+from pathlib import Path
+
 import colossalai
 import torch
-from pathlib import Path
 from colossalai.core import global_context as gpc
 from colossalai.logging import get_dist_logger
-from colossalai.utils import get_dataloader
-from colossalai.trainer import Trainer, hooks
 from colossalai.nn.lr_scheduler import LinearWarmupLR
+from colossalai.trainer import Trainer, hooks
+from colossalai.utils import get_dataloader
 from timm.models import vit_base_patch16_224
 from torchvision import datasets, transforms
 
@@ -79,7 +80,7 @@ def main():
     criterion = torch.nn.CrossEntropyLoss()
 
     # lr_scheduelr
-    lr_scheduler = LinearWarmupLR(optimizer, warmup_steps=50, total_steps=gpc.config.NUM_EPOCHS)
+    lr_scheduler = LinearWarmupLR(optimizer, warmup_steps=1, total_steps=gpc.config.NUM_EPOCHS)
 
     engine, train_dataloader, _, _ = colossalai.initialize(
         model, optimizer, criterion, train_dataloader,
