@@ -1,13 +1,10 @@
 name: Test Examples
 
-# on: workflow_dispatch
-on: 
-  pull_request:
-    types: [opened, reopened, synchronize]
+on: workflow_dispatch
 
 jobs:
   test:
-    # if: github.ref_name == 'main' && github.repository == 'hpcaitech/ColossalAI-Examples' && contains(fromJson('["FrankLeeeee", "ver217", "feifeibear", "kurisusnowdeng"]'), github.actor)
+    if: github.ref_name == 'main' && github.repository == 'hpcaitech/ColossalAI-Examples' && contains(fromJson('["FrankLeeeee", "ver217", "feifeibear", "kurisusnowdeng"]'), github.actor)
     name: Build ColossalAI and test examples
     runs-on: [self-hosted, gpu]
     timeout-minutes: 60
@@ -28,64 +25,64 @@ jobs:
         pip install -r requirements/requirements.txt
         pip install -v --no-cache-dir .
     - uses: actions/checkout@v2
-    # - name: Test Feature/AMP
-    #   run: |
-    #     cd features/amp
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_apex.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_naive.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_torch.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_fp32.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_apex.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_naive.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_torch.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_fp32.py
-    #   env:
-    #     DATA: /data
-    # - name: Test Feature/Gradient Accumulation
-    #   run: |
-    #     cd features/gradient_accumulation
-    #     python -m torch.distributed.run --standalone --nproc_per_node=1 train_with_engine.py
-    #   env:
-    #     DATA: /data/cifar-10
-    # - name: Test Feature/Gradient Clipping
-    #   run: |
-    #     cd features/gradient_clipping
-    #     python -m torch.distributed.run --standalone --nproc_per_node=1 train_with_engine.py
-    #   env:
-    #     DATA: /data/cifar-10
-    # - name: Test Feature/Pipeline Parallel
-    #   run: |
-    #     cd features/pipeline_parallel
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 resnet.py
-    #   env:
-    #     DATA: /data/cifar-10
-    # - name: Test Feature/Tensor Parallel
-    #   run: |
-    #     cd features/tensor_parallel
-    #     python -m torch.distributed.run --standalone --nproc_per_node=2 tensor_parallel_1d.py --from_torch
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 tensor_parallel_2d.py --from_torch
-    #     python -m torch.distributed.run --standalone --nproc_per_node=8 tensor_parallel_2p5d.py --from_torch
-    #     python -m torch.distributed.run --standalone --nproc_per_node=8 tensor_parallel_3d.py --from_torch
-    #   env:
-    #     DATA: /data/cifar-10
-    # - name: Test Feature/Zero
-    #   run: |
-    #     cd features/zero
-    #     python -m torch.distributed.run --standalone --nproc_per_node=1 train.py
-    # - name: Test Image/Resnet
-    #   run: |
-    #     cd image/resnet
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 run_resnet_cifar10_with_engine.py
-    #     python -m torch.distributed.run --standalone --nproc_per_node=4 run_resnet_cifar10_with_trainer.py
-    #   env:
-    #     DATA: /data/cifar-10
+    - name: Test Feature/AMP
+      run: |
+        cd features/amp
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_apex.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_naive.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_AMP_torch.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_engine.py --config config/config_fp32.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_apex.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_naive.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_AMP_torch.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 train_with_trainer.py --config config/config_fp32.py
+      env:
+        DATA: /data
+    - name: Test Feature/Gradient Accumulation
+      run: |
+        cd features/gradient_accumulation
+        python -m torch.distributed.run --standalone --nproc_per_node=1 train_with_engine.py
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Gradient Clipping
+      run: |
+        cd features/gradient_clipping
+        python -m torch.distributed.run --standalone --nproc_per_node=1 train_with_engine.py
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Pipeline Parallel
+      run: |
+        cd features/pipeline_parallel
+        python -m torch.distributed.run --standalone --nproc_per_node=4 resnet.py
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Tensor Parallel
+      run: |
+        cd features/tensor_parallel
+        python -m torch.distributed.run --standalone --nproc_per_node=2 tensor_parallel_1d.py --from_torch
+        python -m torch.distributed.run --standalone --nproc_per_node=4 tensor_parallel_2d.py --from_torch
+        python -m torch.distributed.run --standalone --nproc_per_node=8 tensor_parallel_2p5d.py --from_torch
+        python -m torch.distributed.run --standalone --nproc_per_node=8 tensor_parallel_3d.py --from_torch
+      env:
+        DATA: /data/cifar-10
+    - name: Test Feature/Zero
+      run: |
+        cd features/zero
+        python -m torch.distributed.run --standalone --nproc_per_node=1 train.py
+    - name: Test Image/Resnet
+      run: |
+        cd image/resnet
+        python -m torch.distributed.run --standalone --nproc_per_node=4 run_resnet_cifar10_with_engine.py
+        python -m torch.distributed.run --standalone --nproc_per_node=4 run_resnet_cifar10_with_trainer.py
+      env:
+        DATA: /data/cifar-10
     # - name: Test Image/ViT Data Parallel
     #   run: |
     #     cd image/vision_transformer/data_parallel
     #     python -m torch.distributed.run --standalone --nproc_per_node=4 train.py --config config.py
     #   env:
     #     DATA: /data/imagenet-100
-    # FIXME(ver217): CUDA OOM
+    # FIXME(ver217): CUDA OOM, too slow
     - name: Test Image/ViT Pipeline Parallel
       run: |
         cd image/vision_transformer/pipeline_parallel
