@@ -1,0 +1,31 @@
+name: Test Examples
+
+on: workflow_dispatch
+
+jobs:
+  test:
+    if: github.ref_name == 'main' && github.repository == 'hpcaitech/ColossalAI-Examples' && contains(fromJson('["FrankLeeeee", "ver217", "feifeibear", "kurisusnowdeng"]'), github.actor)
+    name: Build ColossalAI and test examples
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 20
+    container:
+      image: nvcr.io/nvidia/pytorch:21.07-py3
+      options: --gpus all --rm --ipc=host -v /data/scratch:/data
+    steps:
+    - name: Install dependencies
+      run: |
+        pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+        pip install -U pip setuptools wheel --user
+        pip install pytest tensorboard transformers
+    - uses: actions/checkout@v2
+      with:
+        repository: hpcaitech/ColossalAI
+    - name: Install Colossal-AI
+      run: |
+        pip install -r requirements/requirements.txt
+        pip install -v --no-cache-dir .
+    - uses: actions/checkout@v2
+    - name: Test ZeRO
+      run: |
+        cd features/zero
+        torchrun --standalone --nproc_per_node=1 train.py
