@@ -38,7 +38,6 @@ def main():
     logger.info('Build data loader', ranks=[0])
     train_ds = WebtextDataset(os.environ['DATA'], seq_len=gpc.config.SEQ_LEN)
     train_dataloader = utils.get_dataloader(train_ds,
-                                            seed=42,
                                             batch_size=gpc.config.BATCH_SIZE,
                                             pin_memory=True,
                                             shuffle=True,
