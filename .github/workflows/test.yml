@@ -88,6 +88,6 @@ jobs:
     - name: Test Image/ViT Pipeline Parallel
       run: |
         cd image/vision_transformer/pipeline_parallel
-        python -m torch.distributed.run --standalone --nproc_per_node=2 vit.py
+        python -m torch.distributed.run --standalone --nproc_per_node=8 vit.py
       env:
         DATA: /data/cifar-10
