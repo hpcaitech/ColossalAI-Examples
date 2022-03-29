@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    if: github.ref_name == 'main' && github.repository == 'hpcaitech/ColossalAI-Examples' && contains(fromJson('["FrankLeeeee", "ver217", "feifeibear", "kurisusnowdeng"]'), github.actor)
+    # if: github.ref_name == 'main' && github.repository == 'hpcaitech/ColossalAI-Examples' && contains(fromJson('["FrankLeeeee", "ver217", "feifeibear", "kurisusnowdeng"]'), github.actor)
     name: Build ColossalAI and test examples
     runs-on: [self-hosted, gpu]
     timeout-minutes: 20
