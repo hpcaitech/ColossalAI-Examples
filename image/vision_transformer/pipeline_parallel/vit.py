@@ -144,7 +144,7 @@ def build_cifar(batch_size):
 
 # Train
 
-BATCH_SIZE = 16
+BATCH_SIZE = 128
 NUM_EPOCHS = 2
 NUM_CHUNKS = 1
 CONFIG = dict(parallel=dict(pipeline=2))
