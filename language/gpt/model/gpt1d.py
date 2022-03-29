@@ -2,17 +2,19 @@
 # -*- encoding: utf-8 -*-
 
 import math
-from colossalai.utils.activation_checkpoint import checkpoint
+
 import torch
-from torch import nn as nn, Tensor
+from colossalai import kernel
+from colossalai import nn as col_nn
 from colossalai.core import global_context as gpc
-from colossalai.nn.layer.utils import divide, ACT2FN
-from colossalai.utils import checkpoint
+from colossalai.kernel.cuda_native.scaled_softmax import AttnMaskType
 from colossalai.nn.layer import Linear1D_Col, Linear1D_Row
 from colossalai.nn.layer.base_layer import ParallelLayer
-from colossalai import kernel
-from colossalai.kernel.cuda_native.scaled_softmax import AttnMaskType
-from colossalai import nn as col_nn
+from colossalai.nn.layer.utils import ACT2FN, divide
+from colossalai.utils import checkpoint
+from colossalai.utils.activation_checkpoint import checkpoint
+from torch import Tensor
+from torch import nn as nn
 
 __all__ = [
     'GPTMLP1D',
@@ -71,7 +73,7 @@ class GPTMLP1D(ParallelLayer):
         return output
 
     def _checkpoint_forward(self, hidden_states: Tensor) -> Tensor:
-        return checkpoint(self._forward, hidden_states)
+        return checkpoint(self._forward, False, hidden_states)
 
     def forward(self, hidden_states: Tensor) -> Tensor:
         if self.checkpoint:
@@ -142,7 +144,7 @@ class GenericGPTSelfAttention1D(ParallelLayer):
         return output
 
     def _checkpoint_forward(self, hidden_states: Tensor, attention_mask=None) -> Tensor:
-        return checkpoint(self._forward, hidden_states, attention_mask)
+        return checkpoint(self._forward, False, hidden_states, attention_mask)
 
     def forward(self, hidden_states: Tensor, attention_mask=None) -> Tensor:
         if self.checkpoint:
@@ -257,7 +259,7 @@ class GenericGPTTransformerLayer1D(ParallelLayer):
 
     def forward(self, hidden_states, attention_mask):
         if self.checkpoint:
-            return checkpoint(self._forward, hidden_states, attention_mask)
+            return checkpoint(self._forward, False, hidden_states, attention_mask)
         else:
             return self._forward(hidden_states, attention_mask)
 

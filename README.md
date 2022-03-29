@@ -41,6 +41,7 @@ This repository contains examples of training models with ColossalAI. These exam
         - Hybrid Parallel
     - GPT-3
         - Hybrid Parallel
+    - Knowledge Graph Embedding
 
 3. Features
     - Mixed Precision Training
