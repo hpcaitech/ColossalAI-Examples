@@ -60,6 +60,8 @@ def train_imagenet():
     colossalai.launch_from_slurm(config=args.config,
                                  host=args.host,
                                  port=29500)
+    # if using torch distributed launcher
+    # colossalai.launch_from_torch(config=args.config)
 
     logger = get_dist_logger()
     if hasattr(gpc.config, 'LOG_PATH'):
