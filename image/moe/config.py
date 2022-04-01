@@ -5,11 +5,8 @@ WEIGHT_DECAY = 3e-2
 NUM_EPOCHS = 200
 WARMUP_EPOCHS = 40
 
-WORLD_SIZE = 4
-MOE_MODEL_PARALLEL_SIZE = 1
-
-parallel = dict(
-    moe=dict(size=MOE_MODEL_PARALLEL_SIZE)
-)
+parallel = dict()
+max_ep_size = 1  # all experts are replicated in the case that user only has 1 GPU
+clip_grad_norm = 1.0  # enable gradient clipping and set it to 1.0
 
 LOG_PATH = f"./cifar10_moe"
