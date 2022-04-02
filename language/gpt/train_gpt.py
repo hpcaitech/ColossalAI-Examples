@@ -12,13 +12,12 @@ from colossalai.engine.schedule import (InterleavedPipelineSchedule,
 from colossalai.logging import disable_existing_loggers, get_dist_logger
 from colossalai.nn import LinearWarmupLR
 from colossalai.trainer import Trainer, hooks
+from colossalai.engine.ophooks.zero_hook import ZeroHook
 from colossalai.utils import is_using_pp
 from colossalai.utils.timer import MultiTimer
 from colossalai.zero.init_ctx import ZeroInitContext
 from model_zoo.gpt.gpt import GPTLMLoss
-
 from dataset.webtext import WebtextDataset
-
 
 def main():
     parser = colossalai.get_default_parser()
@@ -101,7 +100,6 @@ def main():
         schedule=schedule,
         timer=timier
     )
-
     hook_list = [
         hooks.LossHook(),
         hooks.LRSchedulerHook(lr_scheduler=lr_scheduler, by_epoch=True),
@@ -121,8 +119,9 @@ def main():
         hooks=hook_list,
         display_progress=True,
         return_output_label=False,
-        max_steps=100
+        max_steps=30
     )
+
 
 
 if __name__ == '__main__':

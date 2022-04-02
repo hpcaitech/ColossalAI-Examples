@@ -1,8 +1,8 @@
 from colossalai.nn.optimizer import CPUAdam
 from colossalai.zero.shard_utils import TensorShardStrategy
-from model_zoo.gpt.gpt import gpt2_small
+from model_zoo.gpt.gpt import gpt2_xl, gpt2_8B
 
-BATCH_SIZE = 2
+BATCH_SIZE = 32
 NUM_EPOCHS = 60
 SEQ_LEN = 1024
 
@@ -10,7 +10,8 @@ SEQ_LEN = 1024
 zero = dict(
     model_config=dict(
         offload_config=dict(device="cpu"),
-        shard_strategy=TensorShardStrategy()
+        shard_strategy=TensorShardStrategy(),
+        use_memory_tracer=True
     ),
     optimizer_config=dict(
         cpu_offload=True,
@@ -25,6 +26,7 @@ optimizer = dict(
 )
 
 model = dict(
-    type=gpt2_small,
+    type=gpt2_8B,
     checkpoint=True,
+    activation_offload=False,
 )
