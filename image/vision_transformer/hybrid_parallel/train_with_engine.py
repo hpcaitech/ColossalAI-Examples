@@ -130,14 +130,6 @@ def train_imagenet():
         scatter_gather = True
     else:
         scatter_gather = False
-    if use_pipeline:
-        logger.info('Build PipelineSchedule', ranks=[0])
-        schedule = PipelineSchedule(gpc.config.NUM_MICRO_BATCHES,
-                                    tensor_shape=tensor_shape, scatter_gather_tensors=scatter_gather)
-        schedule.pre_processing(engine)
-
-    if schedule is None:
-        schedule = NonPipelineSchedule()
 
     data_iter = iter(train_dataloader)
 
@@ -155,7 +147,7 @@ def train_imagenet():
             progress = range(len(train_dataloader))
         for _ in progress:
             engine.zero_grad()
-            schedule.forward_backward_step(engine, data_iter, return_output_label=False)
+            engine.execute_schedule(data_iter, return_output_label=False)
             engine.step()
             lr_scheduler.step()
 
