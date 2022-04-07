@@ -118,23 +118,12 @@ def train_imagenet():
 
     logger.info("Engine is built", ranks=[0])
 
-    # create schedule
-    schedule = None
-    tensor_shape = getattr(gpc.config, 'TENSOR_SHAPE', None)
-    if gpc.is_initialized(ParallelMode.PARALLEL_1D):
-        scatter_gather = True
-    else:
-        scatter_gather = False
-    if use_pipeline:
-        logger.info('Build PipelineSchedule', ranks=[0])
-        schedule = PipelineSchedule(gpc.config.NUM_MICRO_BATCHES,
-                                    tensor_shape=tensor_shape, scatter_gather_tensors=scatter_gather)
 
     # create timer
     timer = MultiTimer()
 
     # create trainer
-    trainer = Trainer(engine=engine, logger=logger, timer=timer, schedule=schedule)
+    trainer = Trainer(engine=engine, logger=logger, timer=timer)
     logger.info("Trainer is built", ranks=[0])
 
     # create a list of useful hooks

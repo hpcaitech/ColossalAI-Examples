@@ -18,19 +18,6 @@ from colossalai.kernel import LayerNorm
 from model.bert import build_pipeline_bert
 
 
-def get_tensor_shape():
-    if not gpc.is_initialized(ParallelMode.PIPELINE):
-        return None
-
-    dp_size = gpc.get_world_size(ParallelMode.DATA)
-    if gpc.is_initialized(ParallelMode.SEQUENCE):
-        seq_size = gpc.get_world_size(ParallelMode.SEQUENCE)
-    else:
-        seq_size = 1
-    tensor_shape = (gpc.config.SEQ_LENGTH // seq_size,
-                    gpc.config.GLOBAL_BATCH_SIZE // dp_size // gpc.config.NUM_MICRO_BATCHES,
-                    gpc.config.HIDDEN_SIZE)
-    return tensor_shape
 
 
 def process_batch_data(batch_data):
@@ -157,15 +144,7 @@ def main():
                                            criterion,
                                            )
 
-    # schedule
-    schedule = None
-    tensor_shape = get_tensor_shape()
-    if use_pipeline:
-        logger.info('Build PipelineSchedule', ranks=[0])
-        schedule = PipelineSchedule(gpc.config.NUM_MICRO_BATCHES,
-                                    tensor_shape=tensor_shape, scatter_gather_tensors=False,
-                                    batch_data_process_func=process_batch_data)
-        schedule.pre_processing(engine)
+
 
     # build timer
     timer = MultiTimer()
@@ -185,7 +164,7 @@ def main():
         engine.train()
         if use_pipeline:
             engine.zero_grad()
-            _, _, train_loss = schedule.forward_backward_step(engine, train_data_iter, return_output_label=False)
+            _, _, train_loss = engine.execute_schedule(train_data_iter, return_output_label=False)
             success, grad_norm, num_zeros_in_grad = engine.step()
         else:
             tokens, types, sentence_order, loss_mask, lm_labels, padding_mask = get_batch_for_sequence_parallel(
@@ -211,8 +190,8 @@ def main():
             for j in range(gpc.config.EVAL_ITERS):
                 with torch.no_grad():
                     if use_pipeline:
-                        _, _, eval_loss = schedule.forward_backward_step(
-                            engine, valid_data_iter, forward_only=True, return_output_label=False)
+                        _, _, eval_loss = engine.execute_schedule(
+                            valid_data_iter, forward_only=True, return_output_label=False)
                     else:
                         tokens, types, sentence_order, loss_mask, lm_labels, padding_mask = get_batch_for_sequence_parallel(
                             validloader)

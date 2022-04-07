@@ -71,24 +71,12 @@ def main():
     global_batch_size = gpc.config.BATCH_SIZE * \
         gpc.get_world_size(ParallelMode.DATA) * getattr(gpc.config, "gradient_accumulation", 1)
     logger.info(f'Init done, global batch size = {global_batch_size}', ranks=[0])
-    tensor_shape = getattr(gpc.config, 'TENSOR_SHAPE', None)
-    schedule = None
-    if use_pipeline:
-        if use_interleaved:
-            logger.info('Build InterleavedPipelineSchedule', ranks=[0])
-            schedule = InterleavedPipelineSchedule(gpc.config.NUM_MICRO_BATCHES,
-                                                   gpc.config.model.num_chunks, tensor_shape=tensor_shape, scatter_gather_tensors=True)
-        else:
-            logger.info('Build PipelineSchedule', ranks=[0])
-            schedule = PipelineSchedule(gpc.config.NUM_MICRO_BATCHES,
-                                        tensor_shape=tensor_shape, scatter_gather_tensors=True)
 
     timier = MultiTimer()
 
     trainer = Trainer(
         engine=engine,
         logger=logger,
-        schedule=schedule,
         timer=timier
     )
 

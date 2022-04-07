@@ -147,7 +147,7 @@ def build_cifar(batch_size):
 BATCH_SIZE = 128
 NUM_EPOCHS = 2
 NUM_CHUNKS = 1
-CONFIG = dict(parallel=dict(pipeline=2))
+CONFIG = dict(NUM_MICRO_BATCHES=4, parallel=dict(pipeline=2))
 
 
 def train():
@@ -174,12 +174,7 @@ def train():
                                                                          train_dataloader, test_dataloader)
     timer = MultiTimer()
 
-    if NUM_CHUNKS == 1:
-        schedule = PipelineSchedule(num_microbatches=4)
-    else:
-        schedule = InterleavedPipelineSchedule(num_microbatches=4, num_model_chunks=NUM_CHUNKS)
-
-    trainer = Trainer(engine=engine, timer=timer, logger=logger, schedule=schedule)
+    trainer = Trainer(engine=engine, timer=timer, logger=logger)
 
     hook_list = [
         hooks.LossHook(),
