@@ -16,6 +16,9 @@ from dataclasses import dataclass
 
 ACCUM_ITER = 1
 
+# global states
+LOGGER = get_dist_logger()
+VERBOSE = False
 
 @dataclass
 class lr_sched_args:
@@ -35,29 +38,18 @@ LR_SCHED_ARGS = lr_sched_args(
 def load_imgfolder(path, transform):
     return datasets.ImageFolder(path, transform=transform)
 
+def init_global_states(config):
+    global VERBOSE
+    VERBOSE = config.VERBOSE
 
-def init_pretrain_dataloaders(datapath):
-    ...
 
+def pretrain_dataloaders(datapath, transform_train, transform_val):
+    train_dataset = load_imgfolder(datapath / "train", transform_train)
+    test_dataset = load_imgfolder(datapath / "val", transform_val)
 
-def main(config_path):
-    colossalai.launch_from_torch(config_path)
-
-    logger = get_dist_logger()
-
-    # build mae model
-    model = models_vit.vit_large_patch16(
-        num_classes=1000,
-        global_pool=False,
-    )
-
-    # build dataloaders
-    datapath = gpc.config.DATAPATH
-    train_dataset = load_imgfolder(datapath / "train", gpc.config.TRANSFORM_TRAIN)
-    test_dataset = load_imgfolder(datapath / "val", gpc.config.TRANSFORM_VAL)
-
-    print(train_dataset)
-    print(test_dataset)
+    if VERBOSE:
+        LOGGER.info(f"Train dataset:\n{train_dataset}")
+        LOGGER.info(f"Test dataset:\n{test_dataset}")
 
     train_dataloader = get_dataloader(
         dataset=train_dataset,
@@ -77,15 +69,32 @@ def main(config_path):
         drop_last=False,
     )
 
-    train_dataloader, test_dataloader = init_pretrain_dataloaders(
+    return train_dataloader, test_dataloader
+
+
+def main(config_path):
+    colossalai.launch_from_torch(config_path)
+
+    init_global_states(gpc.config)
+
+    # build mae model
+    model = models_vit.vit_large_patch16(
+        num_classes=1000,
+        global_pool=False,
+    )
+    LOGGER.info("Use model vit_large_patch16")
+
+    train_dataloader, test_dataloader = pretrain_dataloaders(
         gpc.config.DATAPATH, gpc.config.TRANSFORM_TRAIN, gpc.config.TRANSFORM_VAL
     )
 
     criterion = torch.nn.CrossEntropyLoss()
-    print("criterion = {}".format(str(criterion)))
+    if VERBOSE:
+        LOGGER.info(f"Criterion:\n{criterion}")
 
     optimizer = LARS(model.head.parameters(), lr=False, weight_decay=0)
-    print(optimizer)
+    if VERBOSE:
+        LOGGER.info(f"Optimizer:\n{optimizer}")
 
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(
         model,

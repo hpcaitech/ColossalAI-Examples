@@ -10,6 +10,9 @@ logger.info(f"Loading config from file {__file__}")
 
 # Static Configuration
 
+# VERBOSE = False
+VERBOSE = True
+
 BATCH_SIZE = 4
 NUM_EPOCHS = 2
 
