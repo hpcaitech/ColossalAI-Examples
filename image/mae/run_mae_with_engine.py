@@ -16,11 +16,13 @@ from dataclasses import dataclass
 
 ACCUM_ITER = 1
 
+
 @dataclass
 class lr_sched_args:
     warmup_epochs: int
     lr: float
     min_lr: float
+
 
 # FIXME: `lr` should be `absolute_lr = base_lr * total_batch_size / 256`
 LR_SCHED_ARGS = lr_sched_args(
@@ -32,6 +34,7 @@ LR_SCHED_ARGS = lr_sched_args(
 
 def load_imgfolder(path, transform):
     return datasets.ImageFolder(path, transform=transform)
+
 
 def main(config):
     colossalai.launch_from_torch(config)
@@ -46,14 +49,14 @@ def main(config):
 
     # build dataloaders
     datapath = gpc.config.DATAPATH
-    train_dataset = load_imgfolder(datapath/'train', gpc.config.TRANSFORM_TRAIN)
-    test_dataset = load_imgfolder(datapath/'val', gpc.config.TRANSFORM_VAL)
+    train_dataset = load_imgfolder(datapath / "train", gpc.config.TRANSFORM_TRAIN)
+    test_dataset = load_imgfolder(datapath / "val", gpc.config.TRANSFORM_VAL)
 
     print(train_dataset)
     print(test_dataset)
 
     train_dataloader = get_dataloader(
-        dataset = train_dataset,
+        dataset=train_dataset,
         shuffle=True,
         batch_size=gpc.config.BATCH_SIZE,
         num_workers=1,
@@ -62,12 +65,12 @@ def main(config):
     )
 
     test_dataloader = get_dataloader(
-        dataset = train_dataset,
+        dataset=train_dataset,
         shuffle=True,
         batch_size=gpc.config.BATCH_SIZE,
         num_workers=1,
         pin_memory=True,
-        drop_last=False
+        drop_last=False,
     )
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -76,12 +79,13 @@ def main(config):
     optimizer = LARS(model.head.parameters(), lr=False, weight_decay=0)
     print(optimizer)
 
-    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model,
-                                                                         optimizer,
-                                                                         criterion,
-                                                                         train_dataloader,
-                                                                         test_dataloader,
-                                                                         )
+    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(
+        model,
+        optimizer,
+        criterion,
+        train_dataloader,
+        test_dataloader,
+    )
 
     lr_scheduler = CosineAnnealingLR(optimizer, total_steps=gpc.config.NUM_EPOCHS)
 
@@ -128,11 +132,11 @@ def main(config):
         # TODO: smooth average
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     if len(sys.argv) == 1:
-        config = Path(__file__).parent / 'config.py'
+        config = Path(__file__).parent / "config.py"
     else:
         config = sys.argv[1]
     main(config)
