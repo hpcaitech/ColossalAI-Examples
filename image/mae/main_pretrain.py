@@ -4,6 +4,7 @@ from tqdm import tqdm
 from colossalai.logging import get_dist_logger
 import colossalai
 import torch
+from colossalai.context import Config
 from colossalai.core import global_context as gpc
 from colossalai.utils import get_dataloader
 import torchvision.datasets as datasets
@@ -19,6 +20,7 @@ ACCUM_ITER = 1
 # global states
 LOGGER = get_dist_logger()
 VERBOSE = False
+
 
 @dataclass
 class lr_sched_args:
@@ -38,9 +40,29 @@ LR_SCHED_ARGS = lr_sched_args(
 def load_imgfolder(path, transform):
     return datasets.ImageFolder(path, transform=transform)
 
-def init_global_states(config):
-    global VERBOSE
-    VERBOSE = config.VERBOSE
+
+def model():
+    m = models_vit.vit_large_patch16(
+        num_classes=1000,
+        global_pool=False,
+    )
+    if VERBOSE:
+        LOGGER.info("Use model vit_large_patch16")
+    return m
+
+
+def criterion():
+    c = torch.nn.CrossEntropyLoss()
+    if VERBOSE:
+        LOGGER.info(f"Criterion:\n{c}")
+    return c
+
+
+def optimizer(model):
+    o = LARS(model.head.parameters(), lr=False, weight_decay=0)
+    if VERBOSE:
+        LOGGER.info(f"Optimizer:\n{o}")
+    return o
 
 
 def pretrain_dataloaders(datapath, transform_train, transform_val):
@@ -72,39 +94,33 @@ def pretrain_dataloaders(datapath, transform_train, transform_val):
     return train_dataloader, test_dataloader
 
 
+def init_global_states(config: Config):
+    global VERBOSE
+    VERBOSE = config.VERBOSE
+
+
+def init_engine(config: Config):
+    _model = model()
+    _optimizer = optimizer(_model)
+    _criterion = criterion()
+    train_dataloader, test_dataloader = pretrain_dataloaders(
+        config.DATAPATH, config.TRANSFORM_TRAIN, config.TRANSFORM_VAL
+    )
+    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(
+        _model,
+        _optimizer,
+        _criterion,
+        train_dataloader,
+        test_dataloader,
+    )
+    return engine, train_dataloader, test_dataloader
+
+
 def main(config_path):
     colossalai.launch_from_torch(config_path)
 
     init_global_states(gpc.config)
-
-    # build mae model
-    model = models_vit.vit_large_patch16(
-        num_classes=1000,
-        global_pool=False,
-    )
-    LOGGER.info("Use model vit_large_patch16")
-
-    train_dataloader, test_dataloader = pretrain_dataloaders(
-        gpc.config.DATAPATH, gpc.config.TRANSFORM_TRAIN, gpc.config.TRANSFORM_VAL
-    )
-
-    criterion = torch.nn.CrossEntropyLoss()
-    if VERBOSE:
-        LOGGER.info(f"Criterion:\n{criterion}")
-
-    optimizer = LARS(model.head.parameters(), lr=False, weight_decay=0)
-    if VERBOSE:
-        LOGGER.info(f"Optimizer:\n{optimizer}")
-
-    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(
-        model,
-        optimizer,
-        criterion,
-        train_dataloader,
-        test_dataloader,
-    )
-
-    lr_scheduler = CosineAnnealingLR(optimizer, total_steps=gpc.config.NUM_EPOCHS)
+    engine, train_dataloader, test_dataloader = init_engine(gpc.config)
 
     for epoch in range(gpc.config.NUM_EPOCHS):
         engine.train()
@@ -131,8 +147,7 @@ def main(config_path):
 
             if (data_iter_step + 1) % ACCUM_ITER == 0:
                 engine.zero_grad()
-        # TODO: replace this with custom loss scaler
-        lr_scheduler.step()
+        # TODO: custom loss scaler
 
         engine.eval()
 

@@ -8,9 +8,9 @@ from colossalai.logging import get_dist_logger
 logger = get_dist_logger()
 logger.info(f"Loading config from file {__file__}")
 
-# Static Configuration
+# ==== Static Configuration ====
 
-# VERBOSE = False
+# Toggle more loggings
 VERBOSE = True
 
 BATCH_SIZE = 4
@@ -36,7 +36,7 @@ TRANSFORM_VAL = transforms.Compose(
     ]
 )
 
-# Dynamic Configuration
+# ==== Dynamic Configuration ====
 
 try:
     DATAPATH = Path(os.environ["DATA"])
