@@ -4,7 +4,6 @@ from tqdm import tqdm
 from colossalai.logging import get_dist_logger
 import colossalai
 import torch
-import os
 from colossalai.core import global_context as gpc
 from colossalai.utils import get_dataloader
 import torchvision.datasets as datasets
@@ -13,22 +12,9 @@ from torchvision import transforms
 from colossalai.nn.lr_scheduler import CosineAnnealingLR
 from util.lars import LARS
 import models_vit
-from util.crop import RandomResizedCrop
 from dataclasses import dataclass
 
 ACCUM_ITER = 1
-
-TRANSFORM_TRAIN = transforms.Compose([
-        RandomResizedCrop(224, interpolation=3),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
-TRANSFORM_VAL = transforms.Compose([
-        transforms.Resize(256, interpolation=3),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
 @dataclass
 class lr_sched_args:
@@ -47,8 +33,8 @@ LR_SCHED_ARGS = lr_sched_args(
 def load_imgfolder(path, transform):
     return datasets.ImageFolder(path, transform=transform)
 
-def main():
-    colossalai.launch_from_torch(config='./config.py')
+def main(config):
+    colossalai.launch_from_torch(config)
 
     logger = get_dist_logger()
 
@@ -59,9 +45,9 @@ def main():
     )
 
     # build dataloaders
-    datapath = Path(os.environ['DATA'])
-    train_dataset = load_imgfolder(datapath/'train', TRANSFORM_TRAIN)
-    test_dataset = load_imgfolder(datapath/'val', TRANSFORM_VAL)
+    datapath = gpc.config.DATAPATH
+    train_dataset = load_imgfolder(datapath/'train', gpc.config.TRANSFORM_TRAIN)
+    test_dataset = load_imgfolder(datapath/'val', gpc.config.TRANSFORM_VAL)
 
     print(train_dataset)
     print(test_dataset)
@@ -144,4 +130,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    if len(sys.argv) == 1:
+        config = Path(__file__).parent / 'config.py'
+    else:
+        config = sys.argv[1]
+    main(config)
