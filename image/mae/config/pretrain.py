@@ -21,18 +21,25 @@ from util.crop import RandomResizedCrop
 
 # ==== Static Configuration ====
 
-# Toggle more loggings
+# toggle more loggings
 VERBOSE = True
 
 NUM_EPOCHS = 2
+# epochs to warmup LR
 WARMUP_EPOCHS = 40 if NUM_EPOCHS > 40 else 0
 
+# Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus
 BATCH_SIZE = 4
+# Accumulate gradient iterations (for increasing the effective batch size under memory constraints)
 ACCUM_ITER = 1
+# Masking ratio (percentage of removed patches).
 MASK_RATIO = 0.75
 
+# learning rate (absolute lr)
 LEARNING_RATE = 0.01
+# lower lr bound for cyclic schedulers that hit 0
 MINIMUM_LEARNING_RATE = 0
+# base learning rate: absolute_lr = base_lr * total_batch_size / 256
 _BASE_LEARNING_RATE = 1e-3
 try:
     LEARNING_RATE
@@ -42,8 +49,10 @@ except NameError:
 
 WEIGHT_DECAY = 0.5
 
+# Use (per-patch) normalized pixels as targets for computing loss
 NORM_PIX_LOSS = True
 
+# resume from checkpoint
 RESUME = False
 if RESUME:
     RESUME_ADDRESS = ""

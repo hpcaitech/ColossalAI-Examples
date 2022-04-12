@@ -1,5 +1,4 @@
 import math
-from os import PathLike
 from tqdm import tqdm
 from pathlib import Path
 
@@ -173,6 +172,8 @@ def main(config_path):
         engine.train()
         engine.zero_grad()
         for data_iter_step, (samples, _) in enumerate(tqdm(train_dataloader)):
+            # TODO: This part could be more "colossal-native", like construct a correct `engine.criterion`.
+
             # we use a per iteration (instead of per epoch) lr scheduler
             if data_iter_step % config.ACCUM_ITER == 0:
                 adjust_learning_rate(
