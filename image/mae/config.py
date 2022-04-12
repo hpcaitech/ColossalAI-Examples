@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
+
 from colossalai.amp import AMP_TYPE
 from torchvision import transforms
+
 from util.crop import RandomResizedCrop
 
 BATCH_SIZE = 4

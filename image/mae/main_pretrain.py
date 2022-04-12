@@ -1,43 +1,34 @@
+from os import PathLike
 from pathlib import Path
-from timm.utils import accuracy
-from tqdm import tqdm
-from colossalai.logging import get_dist_logger
+
 import colossalai
+import timm
+import timm.optim.optim_factory as optim_factory
 import torch
+import torchvision.datasets as datasets
 from colossalai.context import Config
 from colossalai.core import global_context as gpc
+from colossalai.logging import get_dist_logger
 from colossalai.utils import get_dataloader
-import torchvision.datasets as datasets
-import util.lr_sched as lr_sched
+from timm.utils import accuracy
 from torchvision import transforms
-from colossalai.nn.lr_scheduler import CosineAnnealingLR
-from util.lars import LARS
-import models_vit
-from dataclasses import dataclass
+from tqdm import tqdm
 
-ACCUM_ITER = 1
+import models_vit
+import util.lr_sched as lr_sched
+import util.misc as misc
+from deit_helper import load_model_args, lr_sched_args
+from util.misc import NativeScalerWithGradNormCount as NativeScaler
+
+assert timm.__version__ == "0.3.2"  # version check
+
 
 # global states
 LOGGER = get_dist_logger()
 VERBOSE = False
 
 
-@dataclass
-class lr_sched_args:
-    warmup_epochs: int
-    lr: float
-    min_lr: float
-
-
-# FIXME: `lr` should be `absolute_lr = base_lr * total_batch_size / 256`
-LR_SCHED_ARGS = lr_sched_args(
-    warmup_epochs=1,
-    lr=0.1,
-    min_lr=0,
-)
-
-
-def load_imgfolder(path, transform):
+def _load_imgfolder(path, transform):
     return datasets.ImageFolder(path, transform=transform)
 
 
@@ -58,16 +49,24 @@ def criterion():
     return c
 
 
-def optimizer(model):
-    o = LARS(model.head.parameters(), lr=False, weight_decay=0)
+def optimizer(model, learning_rate, weight_decay):
+    # following timm: set wd as 0 for bias and norm layers
+    param_groups = optim_factory.add_weight_decay(model, weight_decay)
+    o = torch.optim.AdamW(param_groups, lr=learning_rate, betas=(0.9, 0.95))
     if VERBOSE:
         LOGGER.info(f"Optimizer:\n{o}")
     return o
 
 
-def pretrain_dataloaders(datapath, transform_train, transform_val):
-    train_dataset = load_imgfolder(datapath / "train", transform_train)
-    test_dataset = load_imgfolder(datapath / "val", transform_val)
+def pretrain_dataloaders(
+    datapath: Path,
+    transform_train: transforms.Compose,
+    transform_val: transforms.Compose,
+):
+    if VERBOSE:
+        LOGGER.info(f"DATAPATH: {datapath.absolute()}")
+    train_dataset = _load_imgfolder(datapath / "train", transform_train)
+    test_dataset = _load_imgfolder(datapath / "val", transform_val)
 
     if VERBOSE:
         LOGGER.info(f"Train dataset:\n{train_dataset}")
@@ -101,7 +100,7 @@ def init_global_states(config: Config):
 
 def init_engine(config: Config):
     _model = model()
-    _optimizer = optimizer(_model)
+    _optimizer = optimizer(_model, config.LEARNING_RATE, config.WEIGHT_DECAY)
     _criterion = criterion()
     train_dataloader, test_dataloader = pretrain_dataloaders(
         config.DATAPATH, config.TRANSFORM_TRAIN, config.TRANSFORM_VAL
@@ -116,13 +115,32 @@ def init_engine(config: Config):
     return engine, train_dataloader, test_dataloader
 
 
+def resume_model(engine, loss_scaler, resume_address, start_epoch):
+    misc.load_model(
+        args=load_model_args(resume=resume_address, start_epoch=start_epoch),
+        model_without_ddp=engine.model,
+        optimizer=engine.optimizer,
+        loss_scaler=loss_scaler,
+    )
+    if VERBOSE:
+        LOGGER.info(f"Resume model from {resume_address}, start at epoch {start_epoch}")
+
+
 def main(config_path):
     colossalai.launch_from_torch(config_path)
+    config = gpc.config
 
-    init_global_states(gpc.config)
-    engine, train_dataloader, test_dataloader = init_engine(gpc.config)
+    init_global_states(config)
+    engine, train_dataloader, test_dataloader = init_engine(config)
+    loss_scaler = NativeScaler()
 
-    for epoch in range(gpc.config.NUM_EPOCHS):
+    if config.RESUME:
+        resume_model(
+            engine, loss_scaler, config.RESUME_ADDRESS, config.RESUME_START_EPOCH
+        )
+
+    LOGGER.info(f"Start pre-training for {config.NUM_EPOCHS} epochs")
+    for epoch in range(config.NUM_EPOCHS):
         engine.train()
         engine.zero_grad()
 
@@ -145,7 +163,7 @@ def main(config_path):
             engine.backward(train_loss)
             engine.step()
 
-            if (data_iter_step + 1) % ACCUM_ITER == 0:
+            if (data_iter_step + 1) % config.ACCUM_ITER == 0:
                 engine.zero_grad()
         # TODO: custom loss scaler
 
