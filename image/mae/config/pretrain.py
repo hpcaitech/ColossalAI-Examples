@@ -23,12 +23,14 @@ from util.crop import RandomResizedCrop
 # toggle more loggings
 VERBOSE = True
 
-NUM_EPOCHS = 20
+NUM_EPOCHS = 800
 # epochs to warmup LR
 WARMUP_EPOCHS = 40 if NUM_EPOCHS > 40 else 0
 
 # Place to save pretrained model
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 # Interval to save a checkpoint
 CHECKPOINT_EPOCH_INTERVAL = 20
 

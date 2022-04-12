@@ -1,7 +1,6 @@
 import datetime
 import math
 import time
-from tqdm import tqdm
 from pathlib import Path
 
 import colossalai
@@ -15,10 +14,10 @@ from colossalai.logging import get_dist_logger
 from colossalai.utils import get_dataloader
 from timm.utils import accuracy
 from torchvision import transforms
+from tqdm import tqdm
 
 import models_mae
 import util.lr_sched as lr_sched
-from timm.utils import accuracy
 import util.misc as misc
 from deit_helper import load_model_args, lr_sched_args
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
@@ -194,9 +193,9 @@ def main(config_path):
     for epoch in range(start_epoch, config.NUM_EPOCHS):
         engine.train()
         engine.zero_grad()
-        for data_iter_step, (samples, _) in enumerate(tqdm(train_dataloader)):
-            # TODO: This part could be more "colossal-native", like construct a correct `engine.criterion`.
 
+        # TODO: This part could be more "colossal-native", like construct a correct `engine.criterion`.
+        for data_iter_step, (samples, _) in enumerate(tqdm(train_dataloader)):
             # we use a per iteration (instead of per epoch) lr scheduler
             if data_iter_step % config.ACCUM_ITER == 0:
                 adjust_learning_rate(
@@ -222,7 +221,6 @@ def main(config_path):
                 loss_scaler,
             )
 
-    # TODO: save model
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     LOGGER.info(f"Training time {total_time_str}")
