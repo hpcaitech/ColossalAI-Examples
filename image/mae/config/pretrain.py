@@ -17,10 +17,7 @@ from util.crop import RandomResizedCrop
 #   eg: __BASE_LEARNING_RATE
 #
 # 3. `this_is_a_simple_helper`: Snake case.
-#   eg: logger, eff_batch_size
-
-logger = get_dist_logger()
-logger.info(f"Loading config from file {__file__}")
+#   eg: eff_batch_size
 
 # ==== Static Configuration ====
 
@@ -28,10 +25,14 @@ logger.info(f"Loading config from file {__file__}")
 VERBOSE = True
 
 NUM_EPOCHS = 2
+WARMUP_EPOCHS = 40 if NUM_EPOCHS > 40 else 0
+
 BATCH_SIZE = 4
 ACCUM_ITER = 1
+MASK_RATIO = 0.75
 
 LEARNING_RATE = 0.01
+MINIMUM_LEARNING_RATE = 0
 _BASE_LEARNING_RATE = 1e-3
 try:
     LEARNING_RATE
@@ -40,6 +41,8 @@ except NameError:
     LEARNING_RATE = _BASE_LEARNING_RATE * eff_batch_size / 256
 
 WEIGHT_DECAY = 0.5
+
+NORM_PIX_LOSS = True
 
 RESUME = False
 if RESUME:

@@ -1,4 +1,6 @@
+import math
 from os import PathLike
+from tqdm import tqdm
 from pathlib import Path
 
 import colossalai
@@ -12,9 +14,8 @@ from colossalai.logging import get_dist_logger
 from colossalai.utils import get_dataloader
 from timm.utils import accuracy
 from torchvision import transforms
-from tqdm import tqdm
 
-import models_vit
+import models_mae
 import util.lr_sched as lr_sched
 import util.misc as misc
 from deit_helper import load_model_args, lr_sched_args
@@ -32,11 +33,8 @@ def _load_imgfolder(path, transform):
     return datasets.ImageFolder(path, transform=transform)
 
 
-def model():
-    m = models_vit.vit_large_patch16(
-        num_classes=1000,
-        global_pool=False,
-    )
+def model(norm_pix_loss):
+    m = models_mae.mae_vit_large_patch16(norm_pix_loss=norm_pix_loss)
     if VERBOSE:
         LOGGER.info("Use model vit_large_patch16")
     return m
@@ -67,7 +65,6 @@ def pretrain_dataloaders(
         LOGGER.info(f"DATAPATH: {datapath.absolute()}")
     train_dataset = _load_imgfolder(datapath / "train", transform_train)
     test_dataset = _load_imgfolder(datapath / "val", transform_val)
-
     if VERBOSE:
         LOGGER.info(f"Train dataset:\n{train_dataset}")
         LOGGER.info(f"Test dataset:\n{test_dataset}")
@@ -99,7 +96,7 @@ def init_global_states(config: Config):
 
 
 def init_engine(config: Config):
-    _model = model()
+    _model = model(config.NORM_PIX_LOSS)
     _optimizer = optimizer(_model, config.LEARNING_RATE, config.WEIGHT_DECAY)
     _criterion = criterion()
     train_dataloader, test_dataloader = pretrain_dataloaders(
@@ -115,15 +112,49 @@ def init_engine(config: Config):
     return engine, train_dataloader, test_dataloader
 
 
-def resume_model(engine, loss_scaler, resume_address, start_epoch):
+def resume_model(engine, loss_scaler, config):
     misc.load_model(
-        args=load_model_args(resume=resume_address, start_epoch=start_epoch),
+        args=load_model_args(
+            resume=config.RESUME_ADDRESS, start_epoch=config.RESUME_START_EPOCH
+        ),
         model_without_ddp=engine.model,
         optimizer=engine.optimizer,
         loss_scaler=loss_scaler,
     )
     if VERBOSE:
-        LOGGER.info(f"Resume model from {resume_address}, start at epoch {start_epoch}")
+        LOGGER.info(
+            f"Resume model from {config.RESUME_ADDRESS}, start at epoch {config.RESUME_START_EPOCH}"
+        )
+
+
+def adjust_learning_rate(engine, data_iter_step, train_dataloader, epoch, config):
+    args = lr_sched_args(
+        lr=config.LEARNING_RATE,
+        min_lr=config.MINIMUM_LEARNING_RATE,
+        epochs=config.NUM_EPOCHS,
+        warmup_epochs=config.WARMUP_EPOCHS,
+    )
+    lr_sched.adjust_learning_rate(
+        engine.optimizer,
+        data_iter_step / len(train_dataloader) + epoch,
+        args,
+    )
+
+
+def exit_if_infinite_loss(l):
+    if not math.isfinite(l):
+        print("Loss is {}, stopping training".format(l))
+        sys.exit(1)
+
+
+def scale_loss(engine, loss, loss_scaler, data_iter_step, config):
+    loss /= config.ACCUM_ITER
+    loss_scaler(
+        loss,
+        engine.optimizer,
+        parameters=engine.model.parameters(),
+        update_grad=(data_iter_step + 1) % config.ACCUM_ITER == 0,
+    )
 
 
 def main(config_path):
@@ -135,51 +166,29 @@ def main(config_path):
     loss_scaler = NativeScaler()
 
     if config.RESUME:
-        resume_model(
-            engine, loss_scaler, config.RESUME_ADDRESS, config.RESUME_START_EPOCH
-        )
+        resume_model(engine, loss_scaler, config)
 
     LOGGER.info(f"Start pre-training for {config.NUM_EPOCHS} epochs")
     for epoch in range(config.NUM_EPOCHS):
         engine.train()
         engine.zero_grad()
-
-        # display progress bar if main
-        if gpc.get_global_rank() == 0:
-            train_dl = tqdm(train_dataloader)
-        else:
-            train_dl = train_dataloader
-
-        for data_iter_step, (samples, target) in enumerate(train_dl):
-            # TODO: handle learning rate adjustion more properly.
-            # # we use a per iteration (instead of per epoch) lr scheduler
-            # if data_iter_step % ACCUM_ITER == 0:
-            #     lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(train_dl) + epoch, LR_SCHED_ARGS)
-
+        for data_iter_step, (samples, _) in enumerate(tqdm(train_dataloader)):
+            # we use a per iteration (instead of per epoch) lr scheduler
+            if data_iter_step % config.ACCUM_ITER == 0:
+                adjust_learning_rate(
+                    engine, data_iter_step, train_dataloader, epoch, config
+                )
             samples = samples.cuda()
-            target = target.cuda()
-            output = engine(samples)
-            train_loss = engine.criterion(output, target)
-            engine.backward(train_loss)
-            engine.step()
-
+            loss, _, _ = engine.model(samples, mask_ratio=config.MASK_RATIO)
+            loss_value = loss.item()
+            exit_if_infinite_loss(loss_value)
+            scale_loss(engine, loss, loss_scaler, data_iter_step, config)
             if (data_iter_step + 1) % config.ACCUM_ITER == 0:
                 engine.zero_grad()
-        # TODO: custom loss scaler
 
-        engine.eval()
+        # TODO: engine.eval()
 
-        for image, target in test_dataloader:
-            image = image.cuda()
-            target = target.cuda()
-
-            with torch.no_grad():
-                output = engine(image)
-                test_loss = engine.criterion(output, target)
-
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
-
-        # TODO: smooth average
+    # TODO: save model
 
 
 if __name__ == "__main__":
