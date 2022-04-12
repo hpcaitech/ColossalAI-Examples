@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 from colossalai.amp import AMP_TYPE
-from colossalai.logging import get_dist_logger
 from torchvision import transforms
 
 import util.misc as misc
@@ -24,9 +23,15 @@ from util.crop import RandomResizedCrop
 # toggle more loggings
 VERBOSE = True
 
-NUM_EPOCHS = 2
+NUM_EPOCHS = 20
 # epochs to warmup LR
 WARMUP_EPOCHS = 40 if NUM_EPOCHS > 40 else 0
+
+# Place to save pretrained model
+OUTPUT_DIR = Path(__file__).parent.parent / "output"
+# Interval to save a checkpoint
+CHECKPOINT_EPOCH_INTERVAL = 20
+
 
 # Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus
 BATCH_SIZE = 4

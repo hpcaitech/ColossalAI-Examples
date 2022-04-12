@@ -1,4 +1,6 @@
+import datetime
 import math
+import time
 from tqdm import tqdm
 from pathlib import Path
 
@@ -16,6 +18,7 @@ from torchvision import transforms
 
 import models_mae
 import util.lr_sched as lr_sched
+from timm.utils import accuracy
 import util.misc as misc
 from deit_helper import load_model_args, lr_sched_args
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
@@ -112,10 +115,12 @@ def init_engine(config: Config):
 
 
 def resume_model(engine, loss_scaler, config):
+    args = load_model_args(
+        resume=config.RESUME_ADDRESS, start_epoch=config.RESUME_START_EPOCH
+    )
+
     misc.load_model(
-        args=load_model_args(
-            resume=config.RESUME_ADDRESS, start_epoch=config.RESUME_START_EPOCH
-        ),
+        args=args,
         model_without_ddp=engine.model,
         optimizer=engine.optimizer,
         loss_scaler=loss_scaler,
@@ -124,6 +129,8 @@ def resume_model(engine, loss_scaler, config):
         LOGGER.info(
             f"Resume model from {config.RESUME_ADDRESS}, start at epoch {config.RESUME_START_EPOCH}"
         )
+
+    return args.start_epoch
 
 
 def adjust_learning_rate(engine, data_iter_step, train_dataloader, epoch, config):
@@ -156,6 +163,20 @@ def scale_loss(engine, loss, loss_scaler, data_iter_step, config):
     )
 
 
+def save_model(model, output_dir, epoch, config, optimizer, loss_scaler):
+    checkpoint_path = output_dir / (f"checkpoint-{epoch}.pth")
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "epoch": epoch,
+            "scaler": loss_scaler.state_dict(),
+            "config": config,
+        },
+        checkpoint_path,
+    )
+
+
 def main(config_path):
     colossalai.launch_from_torch(config_path)
     config = gpc.config
@@ -164,11 +185,13 @@ def main(config_path):
     engine, train_dataloader, test_dataloader = init_engine(config)
     loss_scaler = NativeScaler()
 
+    start_epoch = 0
     if config.RESUME:
-        resume_model(engine, loss_scaler, config)
+        start_epoch = resume_model(engine, loss_scaler, config)
 
     LOGGER.info(f"Start pre-training for {config.NUM_EPOCHS} epochs")
-    for epoch in range(config.NUM_EPOCHS):
+    start_time = time.time()
+    for epoch in range(start_epoch, config.NUM_EPOCHS):
         engine.train()
         engine.zero_grad()
         for data_iter_step, (samples, _) in enumerate(tqdm(train_dataloader)):
@@ -187,9 +210,22 @@ def main(config_path):
             if (data_iter_step + 1) % config.ACCUM_ITER == 0:
                 engine.zero_grad()
 
-        # TODO: engine.eval()
+        if config.OUTPUT_DIR and (
+            epoch % config.CHECKPOINT_INTERVAL == 0 or epoch + 1 == config.NUM_EPOCHS
+        ):
+            save_model(
+                engine.model,
+                config.OUTPUT_DIR,
+                epoch,
+                config,
+                engine.optimizer,
+                loss_scaler,
+            )
 
     # TODO: save model
+    total_time = time.time() - start_time
+    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
+    LOGGER.info(f"Training time {total_time_str}")
 
 
 if __name__ == "__main__":
