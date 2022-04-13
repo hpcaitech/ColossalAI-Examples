@@ -1,0 +1,6 @@
+colossalai==0.1.2
+torch
+timm
+torchvision
+tqdm
+math
