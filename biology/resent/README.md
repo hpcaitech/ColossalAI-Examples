@@ -1,11 +1,11 @@
 # Train ResNet18 on Compound property prediction
 
-We propose compound property prediction examples with resnet 
+Compound property prediction examples with resnet 
 
 ##  Dataset
 
 
-Seventee compound property prediction dataset is provided in dataset, and process by dataload.py
+Please download [dataset](https://drive.google.com/file/d/1Sgkc4UX8bRoAdTvNrCCvUgLd7T_zjaI-/view?usp=sharing) and zip it.
 
 
 
