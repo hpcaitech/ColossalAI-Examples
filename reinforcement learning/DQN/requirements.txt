@@ -1,0 +1,6 @@
+torch
+torchvision
+colossalai==0.1.2
+tensorboardX
+gym==0.19.0
+atari_py==0.2.6
