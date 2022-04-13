@@ -3,7 +3,7 @@ from colossalai.amp import AMP_TYPE
 # hyperparameters
 # BATCH_SIZE is as per GPU
 # global batch size = BATCH_SIZE x data parallel size
-BATCH_SIZE = 4096
+BATCH_SIZE = 256
 LEARNING_RATE = 3e-3
 WEIGHT_DECAY = 0.3
 NUM_EPOCHS = 300
