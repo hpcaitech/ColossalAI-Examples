@@ -9,8 +9,13 @@ from util.crop import RandomResizedCrop
 
 # ==== Colossal-AI Configuration ====
 
-gradient_accumulation = 4
+gradient_accumulation = 1
 fp16 = dict(mode=AMP_TYPE.TORCH)
+parallel=dict(
+    data=1,
+    pipeline=1,
+    tensor=dict(size=2, mode='1d'),
+)
 
 # ==== Model Configuration ====
 #
@@ -26,7 +31,7 @@ fp16 = dict(mode=AMP_TYPE.TORCH)
 #   eg: eff_batch_size
 
 # toggle more loggings
-VERBOSE = True
+VERBOSE = False
 DEBUG = False
 
 NUM_EPOCHS = 800
