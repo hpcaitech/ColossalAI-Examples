@@ -11,10 +11,10 @@ from util.crop import RandomResizedCrop
 
 gradient_accumulation = 1
 fp16 = dict(mode=AMP_TYPE.TORCH)
-parallel=dict(
+parallel = dict(
     data=1,
     pipeline=1,
-    tensor=dict(size=2, mode='1d'),
+    tensor=dict(size=2, mode="1d"),
 )
 
 # ==== Model Configuration ====
