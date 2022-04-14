@@ -66,6 +66,7 @@ if RESUME:
     RESUME_START_EPOCH = 0
 
 CONFIG = dict(fp16=dict(mode=AMP_TYPE.TORCH))
+gradient_accumulation = 2
 
 TRANSFORM_TRAIN = transforms.Compose(
     [

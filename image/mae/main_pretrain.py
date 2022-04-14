@@ -10,6 +10,7 @@ import torch
 import torchvision.datasets as datasets
 from colossalai.context import Config
 from colossalai.core import global_context as gpc
+from colossalai.nn.lr_scheduler import CosineAnnealingLR
 from colossalai.logging import get_dist_logger
 from colossalai.utils import get_dataloader
 from timm.utils import accuracy
@@ -17,7 +18,6 @@ from torchvision import transforms
 from tqdm import tqdm
 
 import models_mae
-import util.lr_sched as lr_sched
 import util.misc as misc
 from deit_helper import load_model_args, lr_sched_args
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
@@ -28,6 +28,7 @@ assert timm.__version__ == "0.3.2"  # version check
 # global states
 LOGGER = get_dist_logger()
 VERBOSE = False
+DEBUG = True
 
 
 def _load_imgfolder(path, transform):
@@ -132,19 +133,6 @@ def resume_model(engine, loss_scaler, config):
     return args.start_epoch
 
 
-def adjust_learning_rate(engine, data_iter_step, train_dataloader, epoch, config):
-    args = lr_sched_args(
-        lr=config.LEARNING_RATE,
-        min_lr=config.MINIMUM_LEARNING_RATE,
-        epochs=config.NUM_EPOCHS,
-        warmup_epochs=config.WARMUP_EPOCHS,
-    )
-    lr_sched.adjust_learning_rate(
-        engine.optimizer,
-        data_iter_step / len(train_dataloader) + epoch,
-        args,
-    )
-
 
 def exit_if_infinite_loss(l):
     if not math.isfinite(l):
@@ -182,6 +170,7 @@ def main(config_path):
 
     init_global_states(config)
     engine, train_dataloader, test_dataloader = init_engine(config)
+    lr_scheduler = CosineAnnealingLR(engine.optimizer, total_steps=config.NUM_EPOCHS)
     loss_scaler = NativeScaler()
 
     start_epoch = 0
@@ -191,23 +180,22 @@ def main(config_path):
     LOGGER.info(f"Start pre-training for {config.NUM_EPOCHS} epochs")
     start_time = time.time()
     for epoch in range(start_epoch, config.NUM_EPOCHS):
-        engine.train()
-        engine.zero_grad()
 
+        engine.train()
         # TODO: This part could be more "colossal-native", like construct a correct `engine.criterion`.
-        for data_iter_step, (samples, _) in enumerate(tqdm(train_dataloader)):
+        for idx, (img, _) in enumerate(tqdm(train_dataloader)):
             # we use a per iteration (instead of per epoch) lr scheduler
-            if data_iter_step % config.ACCUM_ITER == 0:
-                adjust_learning_rate(
-                    engine, data_iter_step, train_dataloader, epoch, config
-                )
-            samples = samples.cuda()
-            loss, _, _ = engine.model(samples, mask_ratio=config.MASK_RATIO)
+            img = img.cuda()
+
+            engine.zero_grad()
+            loss, _, _ = engine.model(img, mask_ratio=config.MASK_RATIO)
             loss_value = loss.item()
             exit_if_infinite_loss(loss_value)
-            scale_loss(engine, loss, loss_scaler, data_iter_step, config)
-            if (data_iter_step + 1) % config.ACCUM_ITER == 0:
-                engine.zero_grad()
+            scale_loss(engine, loss, loss_scaler, idx, config)
+            lr_scheduler.step()
+
+            if DEBUG:
+                LOGGER.info(f'iteration {idx}, first 10 elements of param: {next(engine.model.parameters()).flatten()[:10]}')
 
         if config.OUTPUT_DIR and (
             epoch % config.CHECKPOINT_INTERVAL == 0 or epoch + 1 == config.NUM_EPOCHS
