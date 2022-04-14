@@ -13,13 +13,12 @@ from colossalai.core import global_context as gpc
 from colossalai.nn.lr_scheduler import CosineAnnealingLR
 from colossalai.logging import get_dist_logger
 from colossalai.utils import get_dataloader
-from timm.utils import accuracy
 from torchvision import transforms
 from tqdm import tqdm
 
 import models_mae
 import util.misc as misc
-from deit_helper import load_model_args, lr_sched_args
+from deit_helper import load_model_args
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
 
 assert timm.__version__ == "0.3.2"  # version check
@@ -28,7 +27,7 @@ assert timm.__version__ == "0.3.2"  # version check
 # global states
 LOGGER = get_dist_logger()
 VERBOSE = False
-DEBUG = True
+DEBUG = False
 
 
 def _load_imgfolder(path, transform):
@@ -93,8 +92,9 @@ def pretrain_dataloaders(
 
 
 def init_global_states(config: Config):
-    global VERBOSE
+    global VERBOSE, DEBUG
     VERBOSE = config.VERBOSE
+    DEBUG = config.DEBUG
 
 
 def init_engine(config: Config):
@@ -131,7 +131,6 @@ def resume_model(engine, loss_scaler, config):
         )
 
     return args.start_epoch
-
 
 
 def exit_if_infinite_loss(l):
@@ -189,13 +188,14 @@ def main(config_path):
 
             engine.zero_grad()
             loss, _, _ = engine.model(img, mask_ratio=config.MASK_RATIO)
-            loss_value = loss.item()
-            exit_if_infinite_loss(loss_value)
-            scale_loss(engine, loss, loss_scaler, idx, config)
+            engine.backward(loss)
+            engine.step()
             lr_scheduler.step()
 
             if DEBUG:
-                LOGGER.info(f'iteration {idx}, first 10 elements of param: {next(engine.model.parameters()).flatten()[:10]}')
+                LOGGER.info(
+                    f"iteration {idx}, first 10 elements of param: {next(engine.model.parameters()).flatten()[:10]}"
+                )
 
         if config.OUTPUT_DIR and (
             epoch % config.CHECKPOINT_INTERVAL == 0 or epoch + 1 == config.NUM_EPOCHS

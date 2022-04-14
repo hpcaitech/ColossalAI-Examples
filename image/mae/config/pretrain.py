@@ -7,7 +7,14 @@ from torchvision import transforms
 import util.misc as misc
 from util.crop import RandomResizedCrop
 
-# ==== Variable Naming Convension ====
+# ==== Colossal-AI Configuration ====
+
+gradient_accumulation = 4
+fp16 = dict(mode=AMP_TYPE.TORCH)
+
+# ==== Model Configuration ====
+#
+# Variable Naming Convension:
 #
 # 1. `THIS_WILL_BE_DERECTLY_ACCESSED_BY_MAIN`: All capital.
 #   eg: VERBOSE, LEARNING_RATE
@@ -18,14 +25,16 @@ from util.crop import RandomResizedCrop
 # 3. `this_is_a_simple_helper`: Snake case.
 #   eg: eff_batch_size
 
-# ==== Static Configuration ====
-
 # toggle more loggings
 VERBOSE = True
+DEBUG = False
 
 NUM_EPOCHS = 800
 # epochs to warmup LR
 WARMUP_EPOCHS = 40 if NUM_EPOCHS > 40 else 0
+
+# Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus
+BATCH_SIZE = 4
 
 # Place to save pretrained model
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
@@ -34,11 +43,6 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # Interval to save a checkpoint
 CHECKPOINT_EPOCH_INTERVAL = 20
 
-
-# Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus
-BATCH_SIZE = 4
-# Accumulate gradient iterations (for increasing the effective batch size under memory constraints)
-ACCUM_ITER = 1
 # Masking ratio (percentage of removed patches).
 MASK_RATIO = 0.75
 
@@ -51,7 +55,7 @@ _BASE_LEARNING_RATE = 1e-3
 try:
     LEARNING_RATE
 except NameError:
-    eff_batch_size = BATCH_SIZE * ACCUM_ITER * misc.get_world_size()
+    eff_batch_size = BATCH_SIZE * gradient_accumulation * misc.get_world_size()
     LEARNING_RATE = _BASE_LEARNING_RATE * eff_batch_size / 256
 
 WEIGHT_DECAY = 0.5
@@ -64,9 +68,6 @@ RESUME = False
 if RESUME:
     RESUME_ADDRESS = ""
     RESUME_START_EPOCH = 0
-
-CONFIG = dict(fp16=dict(mode=AMP_TYPE.TORCH))
-gradient_accumulation = 2
 
 TRANSFORM_TRAIN = transforms.Compose(
     [
