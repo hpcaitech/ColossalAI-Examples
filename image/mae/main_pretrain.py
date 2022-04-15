@@ -16,7 +16,7 @@ from colossalai.utils import get_dataloader
 from torchvision import transforms
 from tqdm import tqdm
 
-import models_mae
+import models_mae_tp
 import util.misc as misc
 from deit_helper import load_model_args
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
@@ -35,7 +35,7 @@ def _load_imgfolder(path, transform):
 
 
 def model(norm_pix_loss):
-    m = models_mae.mae_vit_large_patch16(norm_pix_loss=norm_pix_loss)
+    m = models_mae_tp.mae_vit_large_patch16(norm_pix_loss=norm_pix_loss)
     if VERBOSE:
         LOGGER.info("Use model vit_large_patch16")
     return m

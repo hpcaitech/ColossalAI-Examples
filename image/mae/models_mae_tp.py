@@ -14,17 +14,12 @@ from functools import partial
 import torch
 import torch.nn as nn
 
-import colossalai.nn as col_nn
+from timm.models.vision_transformer import PatchEmbed, Block
 
-from timm.models.vision_transformer import PatchEmbed
-
-from colossalai.communication.collective import all_reduce
-from colossalai.context import ParallelMode
-from colossalai.utils import print_rank_0
+from model_zoo.vit.vit import ViTBlock, ViTEmbedding
 
 from util.pos_embed import get_2d_sincos_pos_embed
 
-from model_zoo.vit.vit import ViTBlock
 
 class MaskedAutoencoderViT(nn.Module):
     """Masked Autoencoder with VisionTransformer backbone"""
@@ -41,7 +36,7 @@ class MaskedAutoencoderViT(nn.Module):
         decoder_depth=8,
         decoder_num_heads=16,
         mlp_ratio=4.0,
-        norm_layer=col_nn.LayerNorm,
+        norm_layer=nn.LayerNorm,
         norm_pix_loss=False,
     ):
         super().__init__()
@@ -56,13 +51,14 @@ class MaskedAutoencoderViT(nn.Module):
             torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False
         )  # fixed sin-cos embedding
 
-        self.blocks = nn.ModuleList(
-            [
+        self.blocks = nn.Sequential(
+            *[
+                # Block(embed_dim, num_heads, mlp_ratio, qkv_bias=True, qk_scale=None, norm_layer=norm_layer)
                 ViTBlock(
                     dim=embed_dim,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
-                    activation = nn.GELU,
+                    activation=nn.functional.gelu,
                     bias=True,
                 )
                 for i in range(depth)
@@ -81,13 +77,13 @@ class MaskedAutoencoderViT(nn.Module):
             torch.zeros(1, num_patches + 1, decoder_embed_dim), requires_grad=False
         )  # fixed sin-cos embedding
 
-        self.decoder_blocks = nn.ModuleList(
-            [
+        self.decoder_blocks = nn.Sequential(
+            *[
                 ViTBlock(
                     dim=decoder_embed_dim,
                     num_heads=decoder_num_heads,
                     mlp_ratio=mlp_ratio,
-                    activation = nn.GELU,
+                    activation=nn.functional.gelu,
                     bias=True,
                 )
                 for i in range(decoder_depth)
@@ -217,8 +213,7 @@ class MaskedAutoencoderViT(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
 
         # apply Transformer blocks
-        for blk in self.blocks:
-            x = blk(x)
+        x = self.blocks(x)
         x = self.norm(x)
 
         return x, mask, ids_restore
@@ -241,8 +236,7 @@ class MaskedAutoencoderViT(nn.Module):
         x = x + self.decoder_pos_embed
 
         # apply Transformer blocks
-        for blk in self.decoder_blocks:
-            x = blk(x)
+        x = self.decoder_blocks(x)
         x = self.decoder_norm(x)
 
         # predictor projection
