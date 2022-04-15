@@ -18,8 +18,13 @@ import colossalai.nn as col_nn
 
 from timm.models.vision_transformer import PatchEmbed
 
+from colossalai.communication.collective import all_reduce
+from colossalai.context import ParallelMode
+from colossalai.utils import print_rank_0
+
 from util.pos_embed import get_2d_sincos_pos_embed
 
+from model_zoo.vit.vit import ViTBlock
 
 def drop_path(x, drop_prob: float = 0.0, training: bool = False):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
@@ -77,6 +82,7 @@ class Mlp(nn.Module):
         x = self.drop(x)
         x = self.fc2(x)
         x = self.drop(x)
+        x = all_reduce(x, parallel_mode=ParallelMode.PARALLEL_1D)
         return x
 
 
@@ -103,6 +109,7 @@ class Attention(nn.Module):
 
     def forward(self, x):
         B, N, C = x.shape
+        # print_rank_0(f"B, N, C = x.shape, {x.shape}")
         qkv = (
             self.qkv(x)
             .reshape(B, N, 3, self.num_heads, C // self.num_heads)
@@ -121,6 +128,8 @@ class Attention(nn.Module):
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
+        # x = all_reduce(x, parallel_mode=ParallelMode.PARALLEL_1D)
+        # print_rank_0(f"x = self.proj_drop(x), {x.shape}")
         return x
 
 
@@ -161,15 +170,16 @@ class Block(nn.Module):
 
     def forward(self, x):
         dx = self.norm1(x)
+        # print_rank_0(f"shape: x = {x.shape}; dx = {dx.shape}")
         dx = self.attn(dx)
+        # print_rank_0(f"after attn: shape: x = {x.shape}; dx = {dx.shape}")
         dx = self.drop_path(dx)
         x = x + dx
         dx = self.norm2(x)
-        print(f"shape: x = {x.shape}; dx = {dx.shape}")
         dx = self.mlp(dx)
-        print(f"after mlp: shape: x = {x.shape}; dx = {dx.shape}")
         dx = self.drop_path(dx)
         x = x + dx
+        # x = all_reduce(x, parallel_mode=ParallelMode.PARALLEL_1D)
         return x
 
 
@@ -367,6 +377,7 @@ class MaskedAutoencoderViT(nn.Module):
 
         # apply Transformer blocks
         for blk in self.blocks:
+            # print_rank_0(f"x = blk(x): {x.shape}")
             x = blk(x)
         x = self.norm(x)
 
