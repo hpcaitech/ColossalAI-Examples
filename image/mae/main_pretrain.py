@@ -215,10 +215,10 @@ def main(config_path):
 
 
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) == 1:
-        config = Path(__file__).parent / "config" / "pretrain.py"
+    args = colossalai.get_default_parser().parse_args()
+    if args.config:
+        config = args.config
     else:
-        config = sys.argv[1]
+        config = Path(__file__).parent / "config" / "pretrain.py"
+        
     main(config)
