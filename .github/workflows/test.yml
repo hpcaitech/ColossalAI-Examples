@@ -9,7 +9,7 @@ jobs:
     runs-on: [self-hosted, gpu]
     timeout-minutes: 60
     container:
-      image: nvcr.io/nvidia/pytorch:21.07-py3
+      image: frankleeeee/pytorch-cuda:1.10.1-11.3.0
       options: --gpus all --rm --ipc=host -v /data/scratch:/data
     steps:
     - name: Install dependencies
