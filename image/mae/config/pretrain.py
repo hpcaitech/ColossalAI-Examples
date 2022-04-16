@@ -33,6 +33,8 @@ NUM_EPOCHS = 800
 # epochs to warmup LR
 WARMUP_EPOCHS = 40 if NUM_EPOCHS > 40 else 0
 
+CHECKPOINT_INTERVAL = 20
+
 # Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus
 BATCH_SIZE = 4
 
