@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 60
     container:
       image: frankleeeee/pytorch-cuda:1.10.1-11.3.0
-      options: --gpus all --rm --ipc=host -v /data/scratch:/data
+      options: --gpus all --rm -v /data/scratch:/data
     steps:
     - name: Install dependencies
       run: |
