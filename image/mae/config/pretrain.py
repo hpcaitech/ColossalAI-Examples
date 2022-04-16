@@ -33,6 +33,7 @@ NUM_EPOCHS = 800
 # epochs to warmup LR
 WARMUP_EPOCHS = 40 if NUM_EPOCHS > 40 else 0
 
+# Interval to save a checkpoint
 CHECKPOINT_INTERVAL = 20
 
 # Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus
@@ -41,9 +42,6 @@ BATCH_SIZE = 4
 # Place to save pretrained model
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-# Interval to save a checkpoint
-CHECKPOINT_EPOCH_INTERVAL = 20
 
 # Masking ratio (percentage of removed patches).
 MASK_RATIO = 0.75
@@ -69,7 +67,6 @@ NORM_PIX_LOSS = True
 RESUME = False
 if RESUME:
     RESUME_ADDRESS = ""
-    RESUME_START_EPOCH = 0
 
 TRANSFORM_TRAIN = transforms.Compose(
     [

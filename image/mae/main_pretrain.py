@@ -1,5 +1,4 @@
 import datetime
-import math
 import time
 from pathlib import Path
 
@@ -10,16 +9,14 @@ import torch
 import torchvision.datasets as datasets
 from colossalai.context import Config
 from colossalai.core import global_context as gpc
-from colossalai.nn.lr_scheduler import CosineAnnealingLR
 from colossalai.logging import get_dist_logger
+from colossalai.nn.lr_scheduler import CosineAnnealingLR
 from colossalai.utils import get_dataloader
+from colossalai.utils.checkpointing import load_checkpoint, save_checkpoint
 from torchvision import transforms
 from tqdm import tqdm
 
 import models_mae_tp
-import util.misc as misc
-from deit_helper import load_model_args
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
 
 assert timm.__version__ == "0.3.2"  # version check
 
@@ -114,31 +111,6 @@ def init_engine(config: Config):
     return engine, train_dataloader, test_dataloader
 
 
-def resume_model(engine, loss_scaler, config):
-    args = load_model_args(
-        resume=config.RESUME_ADDRESS, start_epoch=config.RESUME_START_EPOCH
-    )
-
-    misc.load_model(
-        args=args,
-        model_without_ddp=engine.model,
-        optimizer=engine.optimizer,
-        loss_scaler=loss_scaler,
-    )
-    if VERBOSE:
-        LOGGER.info(
-            f"Resume model from {config.RESUME_ADDRESS}, start at epoch {config.RESUME_START_EPOCH}"
-        )
-
-    return args.start_epoch
-
-
-def exit_if_infinite_loss(l):
-    if not math.isfinite(l):
-        print("Loss is {}, stopping training".format(l))
-        sys.exit(1)
-
-
 def scale_loss(engine, loss, loss_scaler, data_iter_step, config):
     loss /= config.ACCUM_ITER
     loss_scaler(
@@ -149,18 +121,9 @@ def scale_loss(engine, loss, loss_scaler, data_iter_step, config):
     )
 
 
-def save_model(model, output_dir, epoch, config, optimizer, loss_scaler):
+def save_model(model, output_dir, epoch):
     checkpoint_path = output_dir / (f"checkpoint-{epoch}.pth")
-    torch.save(
-        {
-            "model": model.state_dict(),
-            "optimizer": optimizer.state_dict(),
-            "epoch": epoch,
-            "scaler": loss_scaler.state_dict(),
-            "config": config,
-        },
-        checkpoint_path,
-    )
+    save_checkpoint(checkpoint_path, epoch, model, None, None)
 
 
 def main(config_path):
@@ -168,13 +131,19 @@ def main(config_path):
     config = gpc.config
 
     init_global_states(config)
-    engine, train_dataloader, test_dataloader = init_engine(config)
+    engine, train_dataloader, _ = init_engine(config)
     lr_scheduler = CosineAnnealingLR(engine.optimizer, total_steps=config.NUM_EPOCHS)
-    loss_scaler = NativeScaler()
 
     start_epoch = 0
     if config.RESUME:
-        start_epoch = resume_model(engine, loss_scaler, config)
+        # WARNING: `load_checkpoint()` and `save_checkpoint()`
+        #          won't touch optimizer and lr_scheduler!
+        start_epoch = 1 + load_checkpoint(
+            config.RESUME_DIR, engine.model, _, _, strict=False
+        )
+        LOGGER.info(
+            f"Resume from checkpoint {config.RESUME_DIR}, start epoch {start_epoch}"
+        )
 
     LOGGER.info(f"Start pre-training for {config.NUM_EPOCHS} epochs")
     start_time = time.time()
@@ -182,7 +151,7 @@ def main(config_path):
 
         engine.train()
         # TODO: This part could be more "colossal-native", like construct a correct `engine.criterion`.
-        for idx, (img, _) in enumerate(tqdm(train_dataloader)):
+        for idx, (img, _) in enumerate(tqdm(train_dataloader, desc=f"epoch {epoch}")):
             # we use a per iteration (instead of per epoch) lr scheduler
             img = img.cuda()
 
@@ -204,9 +173,6 @@ def main(config_path):
                 engine.model,
                 config.OUTPUT_DIR,
                 epoch,
-                config,
-                engine.optimizer,
-                loss_scaler,
             )
 
     total_time = time.time() - start_time
@@ -220,5 +186,5 @@ if __name__ == "__main__":
         config = args.config
     else:
         config = Path(__file__).parent / "config" / "pretrain.py"
-        
+
     main(config)

@@ -13,10 +13,8 @@ from functools import partial
 
 import torch
 import torch.nn as nn
-
-from timm.models.vision_transformer import PatchEmbed, Block
-
-from model_zoo.vit.vit import ViTBlock, ViTEmbedding
+from model_zoo.vit.vit import ViTBlock
+from timm.models.vision_transformer import PatchEmbed
 
 from util.pos_embed import get_2d_sincos_pos_embed
 
