@@ -2,6 +2,8 @@ import colossalai
 import colossalai.nn as col_nn
 import torch
 from colossalai.utils import get_current_device, print_rank_0
+from colossalai.context import ParallelMode
+from colossalai.communication.collective import all_reduce
 
 CONFIG = dict(parallel=dict(
     data=1,
@@ -25,11 +27,19 @@ class MLP(torch.nn.Module):
     def forward(self, x):
         x = self.dense_1(x)
         print_rank_0(f'Output of the first linear layer: {x.shape}')
+
         x = self.activation(x)
         x = self.dense_2(x)
         print_rank_0(f'Output of the second linear layer: {x.shape}')
+
         x = self.dropout(x)
-        return x
+        print_rank_0(f'Output of the dropout layer: {x.shape}')
+        print(f'On rank {colossalai.core.global_context.get_global_rank()}, first 10 elements of x:\n{x.flatten()[:10]}\n')
+
+        x = all_reduce(x, parallel_mode=ParallelMode.PARALLEL_1D)
+        print_rank_0(f'After `all_reduce()`, first 10 elements of x:\n{x.flatten()[:10]}\n')
+        print_rank_0(f'Output of the all_reduce opration: {x.shape}')
+
 
 
 def main():
