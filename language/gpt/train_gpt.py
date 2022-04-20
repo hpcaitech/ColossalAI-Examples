@@ -12,12 +12,19 @@ from colossalai.engine.schedule import (InterleavedPipelineSchedule,
 from colossalai.logging import disable_existing_loggers, get_dist_logger
 from colossalai.nn import LinearWarmupLR
 from colossalai.trainer import Trainer, hooks
-from colossalai.utils import is_using_pp
+from colossalai.utils import is_using_pp, colo_set_process_memory_fraction
 from colossalai.utils.timer import MultiTimer
 from colossalai.zero.init_ctx import ZeroInitContext
 from model_zoo.gpt.gpt import GPTLMLoss
 
 from dataset.webtext import WebtextDataset
+
+
+def calc_local_model_size(model: torch.nn.Module):
+    numel_per_device = 0
+    for p in model.parameters():
+        numel_per_device += p.numel()
+    return numel_per_device
 
 
 def main():
@@ -60,6 +67,14 @@ def main():
     if use_pipeline and use_interleaved and not isinstance(model, nn.ModuleList):
         model = nn.ModuleList([model])
 
+    if use_zero3:
+        numel = ctx.model_numel_tensor.item()
+    else:
+        numel = calc_local_model_size(model)
+
+    tflop = numel * gpc.config.BATCH_SIZE * gpc.config.SEQ_LEN \
+        * gpc.get_world_size(ParallelMode.MODEL) * gpc.get_world_size(ParallelMode.DATA) * 8 / (1024 ** 4)
+
     criterion = getattr(gpc.config, 'loss_fn', None)
     if criterion is not None:
         criterion = criterion.type()
@@ -94,10 +109,10 @@ def main():
         hooks.LossHook(),
         hooks.LRSchedulerHook(lr_scheduler=lr_scheduler, by_epoch=True),
         hooks.LogMetricByEpochHook(logger),
-        hooks.ThroughputHook(),
+        hooks.ThroughputHook(ignored_steps=10, tflop_per_step=tflop),
         hooks.LogMetricByStepHook(),
         # hooks.TensorboardHook(log_dir='./tb_logs', ranks=[0]),
-        # hooks.LogMemoryByEpochHook(logger),
+        hooks.LogMemoryByEpochHook(logger),
         # hooks.LogTimingByEpochHook(timer, logger),
         # hooks.SaveCheckpointHook(checkpoint_dir='./ckpt')
     ]
