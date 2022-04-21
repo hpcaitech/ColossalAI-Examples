@@ -29,7 +29,6 @@ def build_cifar(batch_size):
     test_dataloader = get_dataloader(dataset=test_dataset, batch_size=batch_size, pin_memory=True)
     return train_dataloader, test_dataloader
 
-from model_zoo.vit import vit_tiny_patch4_32
 
 BATCH_SIZE = 128
 NUM_EPOCHS = 10
