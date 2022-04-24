@@ -91,7 +91,7 @@ steps to perform.
 
 ### Step 1. Set data path and vocab path
 
-At the top of `train.py`, you can see two global variables `DATA_PATH` and `VOCAB_FILE_PATH`. 
+At the top of `config.py`, you can see two global variables `DATA_PATH` and `VOCAB_FILE_PATH`. 
 
 ```python
 DATA_PATH = <data-path>
