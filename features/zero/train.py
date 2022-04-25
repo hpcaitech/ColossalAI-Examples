@@ -4,7 +4,7 @@ import psutil
 import torch
 import torch.nn as nn
 from colossalai.logging import disable_existing_loggers, get_dist_logger
-from colossalai.nn.optimizer import CPUAdam
+from colossalai.nn.optimizer import HybridAdam
 from colossalai.zero.init_ctx import ZeroInitContext
 from colossalai.zero.shard_utils import TensorShardStrategy
 from colossalai.zero.sharded_model import ShardedModelV2
@@ -82,17 +82,16 @@ def main():
     shard_strategy = TensorShardStrategy()
     with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True):
         model = gpt2_medium(checkpoint=True)
-    # Enable CPU offload for parameters and gradients
-    model = ShardedModelV2(model, shard_strategy, offload_config={'device': 'cpu'}, reuse_fp16_shard=True)
+    # Set tensor_placement_policy='cpu', which will offload params, grads and os
+    model = ShardedModelV2(model, shard_strategy, tensor_placement_policy='cpu', reuse_fp16_shard=True)
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
 
     # build criterion
     criterion = GPTLMLoss()
 
     # optimizer
-    optimizer = CPUAdam(model.parameters(), lr=1e-3)
-    # Enable CPU offload for optimizer states
-    optimizer = ShardedOptimizerV2(model, optimizer, cpu_offload=True, initial_scale=2**5)
+    optimizer = HybridAdam(model.parameters(), lr=1e-3)
+    optimizer = ShardedOptimizerV2(model, optimizer, initial_scale=2**5)
     logger.info(get_mem_info(prefix='After init optim, '), ranks=[0])
 
     model.train()
