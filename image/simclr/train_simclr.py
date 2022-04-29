@@ -80,10 +80,8 @@ def main():
         # return data and label
         return dict(x1=x1, x2=x2), img_cls
 
-    schedule = NonPipelineSchedule(batch_data_process_func=process_batch_data)
-
     # build trainer
-    trainer = Trainer(engine=engine, logger=logger, timer=timer, schedule=schedule)
+    trainer = Trainer(engine=engine, logger=logger, timer=timer)
 
     # build hooks
     hook_list = [
