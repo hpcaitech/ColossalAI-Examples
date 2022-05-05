@@ -6,8 +6,8 @@ import torch
 from colossalai.core import global_context as gpc
 from colossalai.logging import get_dist_logger
 from colossalai.nn.lr_scheduler import LinearWarmupLR
-from colossalai.trainer import Trainer, hooks
 from colossalai.utils import get_dataloader
+from colossalai.trainer import Trainer, hooks
 from timm.models import vit_base_patch16_224
 from torchvision import datasets, transforms
 
@@ -33,17 +33,11 @@ class Gray2RGB:
 def main():
     # initialize distributed setting
     parser = colossalai.get_default_parser()
+    parser.add_argument('--use_trainer', action='store_true', help='whether use trainer to execute the training')
     args = parser.parse_args()
 
     # launch from torch
     colossalai.launch_from_torch(config=args.config)
-
-    # launch from slurm batch job
-    # colossalai.launch_from_slurm(config=args.config,
-    #                              host=args.host,
-    #                              port=args.port,
-    #                              backend=args.backend
-    #                              )
 
     # get logger
     logger = get_dist_logger()
@@ -54,7 +48,7 @@ def main():
 
     # build dataloader
     train_dataset = datasets.Caltech101(
-        root=Path(os.environ['DATA']),
+        root=Path(os.environ.get('DATA', './data')),
         download=True,
         transform=transforms.Compose([
             transforms.Resize(256),
@@ -69,7 +63,6 @@ def main():
     train_dataloader = get_dataloader(dataset=train_dataset,
                                       shuffle=True,
                                       batch_size=gpc.config.BATCH_SIZE,
-                                      num_workers=1,
                                       pin_memory=True,
                                       )
 
@@ -88,19 +81,41 @@ def main():
     logger.info("initialized colossalai components", ranks=[0])
 
     # build trainer
-    engine.train()
-    for epoch in range(gpc.config.NUM_EPOCHS):
-        for img, label in train_dataloader:
-            img = img.cuda()
-            label = label.cuda()
-            engine.zero_grad()
-            output = engine(img)
-            loss = engine.criterion(output, label)
-            engine.backward(loss)
-            engine.step()
-            lr_scheduler.step()
+    if not args.use_trainer:
+        engine.train()
+        for epoch in range(gpc.config.NUM_EPOCHS):
+            for img, label in train_dataloader:
+                img = img.cuda()
+                label = label.cuda()
+                engine.zero_grad()
+                output = engine(img)
+                loss = engine.criterion(output, label)
+                engine.backward(loss)
+                engine.step()
+                lr_scheduler.step()
 
-        logger.info('epoch: {}, loss: {}'.format(epoch, loss.item()))
+            logger.info('epoch: {}, loss: {}'.format(epoch, loss.item()))
+    else:
+        # build trainer
+        trainer = Trainer(engine=engine, logger=logger)
+
+        # build hooks
+        hook_list = [
+            hooks.LossHook(),
+            hooks.LogMetricByEpochHook(logger),
+            hooks.LRSchedulerHook(lr_scheduler, by_epoch=True),
+        ]
+
+        # start training
+        trainer.fit(
+            train_dataloader=train_dataloader,
+            epochs=gpc.config.NUM_EPOCHS,
+            hooks=hook_list,
+            display_progress=True,
+            test_interval=1
+        )
+
+    gpc.destroy()
 
 
 if __name__ == '__main__':
