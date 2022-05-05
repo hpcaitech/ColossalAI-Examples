@@ -13,12 +13,10 @@ from colossalai.logging import get_dist_logger
 from colossalai.nn import CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.utils import is_using_pp
-from colossalai.engine.schedule import PipelineSchedule, NonPipelineSchedule
 from dataloader import DaliDataloader
-from model.vit import build_pipeline_vit
-from model_zoo.vit.vit import _create_vit_model
+from colossalai.utils.model.pipelinable import PipelinableContext
+from titans.model.vit.vit import _create_vit_model
 from tqdm import tqdm
-
 
 DATASET_PATH = os.environ['DATA']
 
@@ -57,11 +55,11 @@ def build_dali_test(batch_size):
 def train_imagenet():
     args = colossalai.get_default_parser().parse_args()
     # standard launch
-    colossalai.launch_from_slurm(config=args.config,
-                                 host=args.host,
-                                 port=29500)
+    # colossalai.launch_from_slurm(config=args.config,
+    #                              host=args.host,
+    #                              port=29500)
     # if using torch distributed launcher
-    # colossalai.launch_from_torch(config=args.config)
+    colossalai.launch_from_torch(config=args.config)
 
     logger = get_dist_logger()
     if hasattr(gpc.config, 'LOG_PATH'):
@@ -85,7 +83,12 @@ def train_imagenet():
                         checkpoint=gpc.config.CHECKPOINT)
 
     if use_pipeline:
-        model = build_pipeline_vit(num_layers=model_kwargs['depth'], num_chunks=1, **model_kwargs)
+        pipelinable = PipelinableContext()
+        with pipelinable:
+            model = _create_vit_model(**model_kwargs)
+        pipelinable.to_layer_list()
+        pipelinable.load_policy("uniform")
+        model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
     else:
         model = _create_vit_model(**model_kwargs)
 
@@ -138,10 +141,7 @@ def train_imagenet():
         engine.train()
 
         if gpc.get_global_rank() == 0:
-            description = 'Epoch {} / {}'.format(
-                epoch,
-                gpc.config.NUM_EPOCHS
-            )
+            description = 'Epoch {} / {}'.format(epoch, gpc.config.NUM_EPOCHS)
             progress = tqdm(range(len(train_dataloader)), desc=description)
         else:
             progress = range(len(train_dataloader))

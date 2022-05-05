@@ -19,17 +19,15 @@ def build_dali_train():
     root = os.environ['DATA']
     train_pat = os.path.join(root, 'train/*')
     train_idx_pat = os.path.join(root, 'idx_files/train/*')
-    return DaliDataloader(
-        sorted(glob.glob(train_pat)),
-        sorted(glob.glob(train_idx_pat)),
-        batch_size=gpc.config.BATCH_SIZE,
-        shard_id=gpc.get_local_rank(ParallelMode.DATA),
-        num_shards=gpc.get_world_size(ParallelMode.DATA),
-        gpu_aug=gpc.config.dali.gpu_aug,
-        cuda=True,
-        mixup_alpha=gpc.config.dali.mixup_alpha,
-        randaug_num_layers=2
-    )
+    return DaliDataloader(sorted(glob.glob(train_pat)),
+                          sorted(glob.glob(train_idx_pat)),
+                          batch_size=gpc.config.BATCH_SIZE,
+                          shard_id=gpc.get_local_rank(ParallelMode.DATA),
+                          num_shards=gpc.get_world_size(ParallelMode.DATA),
+                          gpu_aug=gpc.config.dali.gpu_aug,
+                          cuda=True,
+                          mixup_alpha=gpc.config.dali.mixup_alpha,
+                          randaug_num_layers=2)
 
 
 def build_dali_test():
@@ -43,11 +41,10 @@ def build_dali_test():
         shard_id=gpc.get_local_rank(ParallelMode.DATA),
         num_shards=gpc.get_world_size(ParallelMode.DATA),
         training=False,
-        # gpu_aug=gpc.config.dali.gpu_aug,
+    # gpu_aug=gpc.config.dali.gpu_aug,
         gpu_aug=False,
         cuda=True,
-        mixup_alpha=gpc.config.dali.mixup_alpha
-    )
+        mixup_alpha=gpc.config.dali.mixup_alpha)
 
 
 def main():
@@ -84,9 +81,8 @@ def main():
     # lr_scheduelr
     lr_scheduler = LinearWarmupLR(optimizer, warmup_steps=1, total_steps=gpc.config.NUM_EPOCHS)
 
-    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(
-        model, optimizer, criterion, train_dataloader, test_dataloader
-    )
+    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model, optimizer, criterion, train_dataloader,
+                                                                         test_dataloader)
     logger.info("initialized colossalai components", ranks=[0])
 
     # build trainer
@@ -99,21 +95,15 @@ def main():
         hooks.LogMetricByEpochHook(logger),
         hooks.LRSchedulerHook(lr_scheduler, by_epoch=True),
         TotalBatchsizeHook(),
-
-        # comment if you do not need to use the hooks below
-        hooks.SaveCheckpointHook(interval=1, checkpoint_dir='./ckpt'),
-        hooks.TensorboardHook(log_dir='./tb_logs', ranks=[0]),
     ]
 
     # start training
-    trainer.fit(
-        train_dataloader=train_dataloader,
-        test_dataloader=test_dataloader,
-        epochs=gpc.config.NUM_EPOCHS,
-        hooks=hook_list,
-        display_progress=True,
-        test_interval=1
-    )
+    trainer.fit(train_dataloader=train_dataloader,
+                test_dataloader=test_dataloader,
+                epochs=gpc.config.NUM_EPOCHS,
+                hooks=hook_list,
+                display_progress=True,
+                test_interval=1)
 
 
 if __name__ == '__main__':

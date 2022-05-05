@@ -13,11 +13,9 @@ from colossalai.nn import Accuracy, CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.trainer import Trainer, hooks
 from colossalai.utils import MultiTimer, is_using_pp
-from colossalai.engine.schedule import PipelineSchedule
 from dataloader import DaliDataloader
-from model.vit import build_pipeline_vit
-from model_zoo.vit.vit import _create_vit_model
-
+from colossalai.utils.model.pipelinable import PipelinableContext
+from titans.model.vit.vit import _create_vit_model
 
 DATASET_PATH = os.environ['DATA']
 
@@ -56,11 +54,11 @@ def build_dali_test(batch_size):
 def train_imagenet():
     # initialized distributed environment
     args = colossalai.get_default_parser().parse_args()
-    colossalai.launch_from_slurm(config=args.config,
-                                 host=args.host,
-                                 port=29500)
+    # colossalai.launch_from_slurm(config=args.config,
+    #                              host=args.host,
+    #                              port=29500)
     # if using torch distributed launcher
-    # colossalai.launch_from_torch(config=args.config)
+    colossalai.launch_from_torch(config=args.config)
 
     # create distributed logger
     logger = get_dist_logger()
@@ -80,7 +78,12 @@ def train_imagenet():
                         checkpoint=gpc.config.CHECKPOINT)
 
     if use_pipeline:
-        model = build_pipeline_vit(num_layers=model_kwargs['depth'], num_chunks=1, **model_kwargs)
+        pipelinable = PipelinableContext()
+        with pipelinable:
+            model = _create_vit_model(**model_kwargs)
+        pipelinable.to_layer_list()
+        pipelinable.load_policy("uniform")
+        model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
     else:
         model = _create_vit_model(**model_kwargs)
 
@@ -108,7 +111,7 @@ def train_imagenet():
     lr_scheduler = CosineAnnealingWarmupLR(optimizer=optimizer,
                                            total_steps=gpc.config.NUM_EPOCHS,
                                            warmup_steps=gpc.config.WARMUP_EPOCHS)
-    
+
     # intiailize
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model=model,
                                                                          optimizer=optimizer,
@@ -117,7 +120,6 @@ def train_imagenet():
                                                                          test_dataloader=test_dataloader)
 
     logger.info("Engine is built", ranks=[0])
-
 
     # create timer
     timer = MultiTimer()
@@ -138,13 +140,14 @@ def train_imagenet():
 
     # start training
     logger.info("Train start", ranks=[0])
-    trainer.fit(train_dataloader=train_dataloader,
-                test_dataloader=test_dataloader,
-                epochs=gpc.config.NUM_EPOCHS,
-                hooks=hook_list,
-                display_progress=True,
-                test_interval=1,
-                )
+    trainer.fit(
+        train_dataloader=train_dataloader,
+        test_dataloader=test_dataloader,
+        epochs=gpc.config.NUM_EPOCHS,
+        hooks=hook_list,
+        display_progress=True,
+        test_interval=1,
+    )
 
 
 if __name__ == '__main__':
