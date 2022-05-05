@@ -4,12 +4,7 @@ import torch
 from colossalai.context import ParallelMode
 from colossalai.core import global_context as gpc
 from colossalai.utils import get_current_device, print_rank_0
-
-CONFIG = dict(parallel=dict(
-    data=1,
-    pipeline=1,
-    tensor=dict(size=8, mode='3d'),
-))
+from colossalai.global_variables import tensor_parallel_env as tp_env
 
 
 class MLP(torch.nn.Module):
@@ -37,30 +32,33 @@ class MLP(torch.nn.Module):
 def main():
     colossalai.logging.disable_existing_loggers()
     parser = colossalai.get_default_parser()
-    parser.add_argument('--from_torch', default=False, action='store_true')
     args = parser.parse_args()
-    if args.from_torch:
-        colossalai.launch_from_torch(config=CONFIG)
-    else:
-        # standard launch
-        colossalai.launch(config=CONFIG,
-                          rank=args.rank,
-                          world_size=args.world_size,
-                          local_rank=args.local_rank,
-                          host=args.host,
-                          port=args.port)
+    colossalai.launch_from_torch(config=args.config)
 
     m = MLP()
 
     x = torch.randn((16, 256), device=get_current_device())
-    # partition input
     torch.distributed.broadcast(x, src=0)
-    x = torch.chunk(x, 2, dim=0)[gpc.get_local_rank(ParallelMode.PARALLEL_3D_WEIGHT)]
-    x = torch.chunk(x, 2, dim=0)[gpc.get_local_rank(ParallelMode.PARALLEL_3D_INPUT)]
-    x = torch.chunk(x, 2, dim=-1)[gpc.get_local_rank(ParallelMode.PARALLEL_3D_OUTPUT)]
+
+    # partition input
+    if tp_env.mode == '1d':
+        pass
+    elif tp_env.mode == '2d':
+        x = torch.chunk(x, 2, dim=0)[gpc.get_local_rank(ParallelMode.PARALLEL_2D_COL)]
+        x = torch.chunk(x, 2, dim=-1)[gpc.get_local_rank(ParallelMode.PARALLEL_2D_ROW)]
+    elif tp_env.mode == '2.5d':
+        x = torch.chunk(x, 2, dim=0)[gpc.get_local_rank(ParallelMode.PARALLEL_2P5D_DEP)]
+        x = torch.chunk(x, 2, dim=0)[gpc.get_local_rank(ParallelMode.PARALLEL_2P5D_COL)]
+        x = torch.chunk(x, 2, dim=-1)[gpc.get_local_rank(ParallelMode.PARALLEL_2P5D_ROW)]
+    elif tp_env.mode == '3d':
+        x = torch.chunk(x, 2, dim=0)[gpc.get_local_rank(ParallelMode.PARALLEL_3D_WEIGHT)]
+        x = torch.chunk(x, 2, dim=0)[gpc.get_local_rank(ParallelMode.PARALLEL_3D_INPUT)]
+        x = torch.chunk(x, 2, dim=-1)[gpc.get_local_rank(ParallelMode.PARALLEL_3D_OUTPUT)]
     print_rank_0(f'Input: {x.shape}')
 
     x = m(x)
+
+    gpc.destroy()
 
 
 if __name__ == '__main__':
