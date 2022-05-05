@@ -1,34 +1,23 @@
+from cmath import log
 import os
 from pathlib import Path
 
 import colossalai
 import torch
+import time
 from colossalai.core import global_context as gpc
 from colossalai.logging import get_dist_logger
 from colossalai.nn.lr_scheduler import LinearWarmupLR
-from colossalai.utils import get_dataloader
+from colossalai.utils import get_dataloader, MultiTimer
 from colossalai.trainer import Trainer, hooks
 from timm.models import vit_base_patch16_224
 from torchvision import datasets, transforms
+from titans.utils import barrier_context
 
 
-class Gray2RGB:
-    """Convert all images (rgb or grayscale) to rgb.
-
-    """
-
-    def __call__(self, img):
-        """
-        Args:
-            img: Tensor
-
-        Returns:
-            Tensor: RGB image.
-        """
-        if img.size(dim=-3) == 1:
-            img = img.repeat(3, 1, 1)
-        return img
-
+def get_time_stamp():
+    torch.cuda.synchronize()
+    return time.time()
 
 def main():
     # initialize distributed setting
@@ -47,18 +36,18 @@ def main():
     model = vit_base_patch16_224(drop_rate=0.1)
 
     # build dataloader
-    train_dataset = datasets.Caltech101(
-        root=Path(os.environ.get('DATA', './data')),
-        download=True,
-        transform=transforms.Compose([
-            transforms.Resize(256),
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            Gray2RGB(),
-            transforms.Normalize([0.5, 0.5, 0.5],
-                                 [0.5, 0.5, 0.5])
-        ]))
+    with barrier_context():
+        train_dataset = datasets.CIFAR10(
+            root=Path(os.environ.get('DATA', './data')),
+            download=True,
+            transform=transforms.Compose([
+                transforms.Resize(256),
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize([0.5, 0.5, 0.5],
+                                    [0.5, 0.5, 0.5])
+            ]))
 
     train_dataloader = get_dataloader(dataset=train_dataset,
                                       shuffle=True,
@@ -84,6 +73,7 @@ def main():
     if not args.use_trainer:
         engine.train()
         for epoch in range(gpc.config.NUM_EPOCHS):
+            start = get_time_stamp()
             for img, label in train_dataloader:
                 img = img.cuda()
                 label = label.cuda()
@@ -93,17 +83,20 @@ def main():
                 engine.backward(loss)
                 engine.step()
                 lr_scheduler.step()
-
-            logger.info('epoch: {}, loss: {}'.format(epoch, loss.item()))
+            end  = get_time_stamp()
+            avg_step_time = (end - start) / len(train_dataloader)
+            logger.info('epoch: {}, loss: {}, avg step time: {} / s'.format(epoch, loss.item(), avg_step_time))
     else:
         # build trainer
         trainer = Trainer(engine=engine, logger=logger)
+        timer = MultiTimer()
 
         # build hooks
         hook_list = [
             hooks.LossHook(),
             hooks.LogMetricByEpochHook(logger),
             hooks.LRSchedulerHook(lr_scheduler, by_epoch=True),
+            hooks.LogTimingByEpochHook(timer=timer, logger=logger)
         ]
 
         # start training
