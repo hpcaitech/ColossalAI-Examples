@@ -58,10 +58,10 @@ def train():
     with pipelinable:
         model = resnet50()
 
-    exec_seq = ['conv1', 'bn1', 'relu', 'maxpool', 'layer1.0', 'layer1.1', 'layer1.2', \
-                'layer2.0', 'layer2.1', 'layer2.2', 'layer2.3', 'layer3.0', 'layer3.1', \
-                'layer3.2', 'layer3.3', 'layer3.4', 'layer3.5', 'layer4.0', 'layer4.1', \
-                'layer4.2', 'avgpool', (lambda x: torch.flatten(x, 1), "behind"), 'fc']
+    exec_seq = [
+        'conv1', 'bn1', 'relu', 'maxpool', 'layer1', 'layer2', 'layer3', 'layer4', 'avgpool',
+        (lambda x: torch.flatten(x, 1), "behind"), 'fc'
+    ]
     pipelinable.to_layer_list(exec_seq)
     model = pipelinable.partition(NUM_CHUNKS, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
 
