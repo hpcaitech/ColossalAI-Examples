@@ -1,8 +1,8 @@
-from model import deepnet_small_pipeline_1D
 from torch.optim import Adam
 from colossalai.amp import AMP_TYPE
 import torch
-from model import vocab_parallel_cross_entropy
+from titans.model.deepnet import deepnet_small_pipeline_1D
+from titans.loss.vocab_cross_entropy import vocab_parallel_cross_entropy
 
 BATCH_SIZE = 8
 NUM_EPOCHS = 60
@@ -15,14 +15,9 @@ TENSOR_PARALLEL = 2
 MODE = '1d'
 TENSOR_SHAPE = (BATCH_SIZE // NUM_MICRO_BATCHES, SEQ_LEN, HIDDEN_SIZE)
 
-fp16 = dict(
-    mode=AMP_TYPE.NAIVE
-)
+fp16 = dict(mode=AMP_TYPE.NAIVE)
 
-parallel = dict(
-    pipeline=PIPELINE,
-    tensor=dict(mode=MODE, size=TENSOR_PARALLEL)
-)
+parallel = dict(pipeline=PIPELINE, tensor=dict(mode=MODE, size=TENSOR_PARALLEL))
 
 optimizer = dict(
     type=Adam,

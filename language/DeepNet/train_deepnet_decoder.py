@@ -4,15 +4,14 @@ import colossalai
 import os
 from colossalai.core import global_context as gpc
 from colossalai.utils.timer import MultiTimer
-from colossalai.zero import zero3_model_context
+from colossalai.zero.init_ctx import ZeroInitContext
 import colossalai.utils as utils
 from colossalai.trainer import hooks, Trainer
 from colossalai.nn import LinearWarmupLR
 import torch.nn as nn
 from dataset.webtext import WebtextDataset
 import contextlib
-from colossalai.engine.schedule import PipelineSchedule, InterleavedPipelineSchedule
-from model_zoo.gpt.gpt import GPTLMLoss
+from titans.loss.lm_loss import GPTLMLoss
 from colossalai.utils import is_using_pp
 
 
@@ -24,10 +23,7 @@ def main():
     if args.from_torch:
         colossalai.launch_from_torch(config=args.config)
     else:
-        colossalai.launch_from_slurm(config=args.config,
-                                     host=args.host,
-                                     port=29500,
-                                     seed=42)
+        colossalai.launch_from_slurm(config=args.config, host=args.host, port=29500, seed=42)
 
     logger = get_dist_logger()
 
@@ -44,7 +40,11 @@ def main():
     use_pipeline = is_using_pp()
     use_interleaved = hasattr(gpc.config.model, 'num_chunks')
     use_zero3 = hasattr(gpc.config, 'zero') and gpc.config.zero.level == 3
-    ctx = zero3_model_context() if use_zero3 else contextlib.nullcontext()
+    ctx = contextlib.nullcontext()
+    if use_zero3:
+        ctx = ZeroInitContext(target_device=torch.cuda.current_device(),
+                              shard_strategy=gpc.config.zero.model_config.shard_strategy,
+                              shard_param=True)
     with ctx:
         model = gpc.config.model.pop('type')(**gpc.config.model)
     if use_pipeline and use_interleaved and not isinstance(model, nn.ModuleList):
@@ -57,11 +57,9 @@ def main():
         criterion = GPTLMLoss()
 
     logger.info('Build optimizer', ranks=[0])
-    optimizer = gpc.config.optimizer.pop('type')(
-        model.parameters(), **gpc.config.optimizer)
+    optimizer = gpc.config.optimizer.pop('type')(model.parameters(), **gpc.config.optimizer)
 
-    lr_scheduler = LinearWarmupLR(
-        optimizer, total_steps=gpc.config.NUM_EPOCHS, warmup_steps=5)
+    lr_scheduler = LinearWarmupLR(optimizer, total_steps=gpc.config.NUM_EPOCHS, warmup_steps=5)
 
     engine, train_dataloader, _, lr_scheduler = colossalai.initialize(model,
                                                                       optimizer,
@@ -74,11 +72,7 @@ def main():
 
     timier = MultiTimer()
 
-    trainer = Trainer(
-        engine=engine,
-        logger=logger,
-        timer=timier
-    )
+    trainer = Trainer(engine=engine, logger=logger, timer=timier)
 
     hook_list = [
         hooks.LossHook(),
@@ -86,20 +80,18 @@ def main():
         hooks.LogMetricByEpochHook(logger),
         hooks.ThroughputHook(),
         hooks.LogMetricByStepHook(),
-        # hooks.TensorboardHook(log_dir='./tb_logs', ranks=[0]),
-        # hooks.LogMemoryByEpochHook(logger),
-        # hooks.LogTimingByEpochHook(timer, logger),
-        # hooks.SaveCheckpointHook(checkpoint_dir='./ckpt')
+    # hooks.TensorboardHook(log_dir='./tb_logs', ranks=[0]),
+    # hooks.LogMemoryByEpochHook(logger),
+    # hooks.LogTimingByEpochHook(timer, logger),
+    # hooks.SaveCheckpointHook(checkpoint_dir='./ckpt')
     ]
 
-    trainer.fit(
-        train_dataloader=train_dataloader,
-        epochs=gpc.config.NUM_EPOCHS,
-        test_interval=1,
-        hooks=hook_list,
-        display_progress=True,
-        return_output_label=False
-    )
+    trainer.fit(train_dataloader=train_dataloader,
+                epochs=gpc.config.NUM_EPOCHS,
+                test_interval=1,
+                hooks=hook_list,
+                display_progress=True,
+                return_output_label=False)
 
 
 if __name__ == '__main__':
