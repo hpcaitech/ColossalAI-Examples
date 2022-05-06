@@ -34,17 +34,15 @@ def build_dali_test():
     root = os.environ['DATA']
     val_pat = os.path.join(root, 'validation/*')
     val_idx_pat = os.path.join(root, 'idx_files/validation/*')
-    return DaliDataloader(
-        sorted(glob.glob(val_pat)),
-        sorted(glob.glob(val_idx_pat)),
-        batch_size=gpc.config.BATCH_SIZE,
-        shard_id=gpc.get_local_rank(ParallelMode.DATA),
-        num_shards=gpc.get_world_size(ParallelMode.DATA),
-        training=False,
-    # gpu_aug=gpc.config.dali.gpu_aug,
-        gpu_aug=False,
-        cuda=True,
-        mixup_alpha=gpc.config.dali.mixup_alpha)
+    return DaliDataloader(sorted(glob.glob(val_pat)),
+                          sorted(glob.glob(val_idx_pat)),
+                          batch_size=gpc.config.BATCH_SIZE,
+                          shard_id=gpc.get_local_rank(ParallelMode.DATA),
+                          num_shards=gpc.get_world_size(ParallelMode.DATA),
+                          training=False,
+                          gpu_aug=False,
+                          cuda=True,
+                          mixup_alpha=gpc.config.dali.mixup_alpha)
 
 
 def main():
