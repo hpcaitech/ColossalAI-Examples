@@ -8,16 +8,18 @@ import json
 import os
 import numpy as np
 import torch
+from colossalai.amp import AMP_TYPE
 from torch.utils.data import DataLoader
-from model.model import KGEModel
 import colossalai
 from colossalai.utils import get_dataloader
 from colossalai.logging import get_dist_logger
 from dataloader.dataloader import TrainDataset
-from model.model import embeddingLoss
+from titans.loss.embedding_loss import embeddingLoss
+from titans.model.knowledge_graph_embedding import KGEModel
 from dataloader.dataloader import BidirectionalOneShotIterator
 from sklearn.metrics import average_precision_score
 from dataloader.dataloader import TestDataset
+
 
 def parse_args(args=None):
     parser = colossalai.get_default_parser()
@@ -30,7 +32,10 @@ def parse_args(args=None):
     parser.add_argument('--evaluate_train', action='store_true', help='Evaluate on training data')
 
     parser.add_argument('--countries', action='store_true', help='Use Countries S1/S2/S3 datasets')
-    parser.add_argument('--regions', type=int, nargs='+', default=None,
+    parser.add_argument('--regions',
+                        type=int,
+                        nargs='+',
+                        default=None,
                         help='Region Id for Countries S1/S2/S3 datasets, DO NOT MANUALLY SET')
 
     parser.add_argument('--data_path', type=str, default=None)
@@ -46,7 +51,8 @@ def parse_args(args=None):
     parser.add_argument('-b', '--batch_size', default=1024, type=int)
     parser.add_argument('-r', '--regularization', default=0.0, type=float)
     parser.add_argument('--test_batch_size', default=4, type=int, help='valid/test batch size')
-    parser.add_argument('--uni_weight', action='store_true',
+    parser.add_argument('--uni_weight',
+                        action='store_true',
                         help='Otherwise use subsampling weighting like in word2vec')
 
     parser.add_argument('-lr', '--learning_rate', default=0.0001, type=float)
@@ -95,24 +101,17 @@ def save_model(model, optimizer, save_variable_list, args):
     with open(os.path.join(args.save_path, 'config.json'), 'w') as fjson:
         json.dump(argparse_dict, fjson)
 
-    torch.save({
-        **save_variable_list,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict()},
-        os.path.join(args.save_path, 'checkpoint')
-    )
+    torch.save(
+        {
+            **save_variable_list, 'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict()
+        }, os.path.join(args.save_path, 'checkpoint'))
 
     entity_embedding = model.entity_embedding.detach().cpu().numpy()
-    np.save(
-        os.path.join(args.save_path, 'entity_embedding'),
-        entity_embedding
-    )
+    np.save(os.path.join(args.save_path, 'entity_embedding'), entity_embedding)
 
     relation_embedding = model.relation_embedding.detach().cpu().numpy()
-    np.save(
-        os.path.join(args.save_path, 'relation_embedding'),
-        relation_embedding
-    )
+    np.save(os.path.join(args.save_path, 'relation_embedding'), relation_embedding)
 
 
 def read_triple(file_path, entity2id, relation2id):
@@ -126,6 +125,7 @@ def read_triple(file_path, entity2id, relation2id):
             triples.append((entity2id[h], relation2id[r], entity2id[t]))
     return triples
 
+
 def log_metrics(mode, step, metrics):
     '''
     Print the evaluation logs
@@ -137,6 +137,10 @@ def log_metrics(mode, step, metrics):
 
 def main(args):
     logger = get_dist_logger()
+    CONFIG = dict(fp16=dict(mode=AMP_TYPE.TORCH))
+
+    colossalai.launch_from_torch(config=CONFIG)
+
     if (not args.do_train) and (not args.do_valid) and (not args.do_test):
         raise ValueError('one of train/val/test mode must be choosed.')
 
@@ -194,16 +198,13 @@ def main(args):
     # All true triples
     all_true_triples = train_triples + valid_triples + test_triples
 
-    kge_model = KGEModel(
-        model_name=args.model,
-        nentity=nentity,
-        nrelation=nrelation,
-        hidden_dim=args.hidden_dim,
-        gamma=args.gamma,
-        double_entity_embedding=args.double_entity_embedding,
-        double_relation_embedding=args.double_relation_embedding
-    )
-
+    kge_model = KGEModel(model_name=args.model,
+                         nentity=nentity,
+                         nrelation=nrelation,
+                         hidden_dim=args.hidden_dim,
+                         gamma=args.gamma,
+                         double_entity_embedding=args.double_entity_embedding,
+                         double_relation_embedding=args.double_relation_embedding)
     logger.info("Model Parameter Configuration:")
     for name, param in kge_model.named_parameters():
         logger.info(f"Parameter {name}: {param.size()}, require_grad = {param.requires_grad}")
@@ -212,19 +213,21 @@ def main(args):
         kge_model = kge_model.cuda()
 
     if args.do_train:
-        train_dataloader_head = get_dataloader(dataset=TrainDataset(train_triples, nentity, nrelation, args.negative_sample_size, 'head-batch'),
-                                          shuffle=True,
-                                          batch_size=args.batch_size,
-                                          num_workers=1,
-                                          pin_memory=True,
-                                          )
+        train_dataloader_head = get_dataloader(
+            dataset=TrainDataset(train_triples, nentity, nrelation, args.negative_sample_size, 'head-batch'),
+            shuffle=True,
+            batch_size=args.batch_size,
+            num_workers=1,
+            pin_memory=True,
+        )
 
-        train_dataloader_tail = get_dataloader(dataset=TrainDataset(train_triples, nentity, nrelation, args.negative_sample_size, 'tail-batch'),
-                                          shuffle=True,
-                                          batch_size=args.batch_size,
-                                          num_workers=1,
-                                          pin_memory=True,
-                                          )
+        train_dataloader_tail = get_dataloader(
+            dataset=TrainDataset(train_triples, nentity, nrelation, args.negative_sample_size, 'tail-batch'),
+            shuffle=True,
+            batch_size=args.batch_size,
+            num_workers=1,
+            pin_memory=True,
+        )
 
         train_iterator = BidirectionalOneShotIterator(train_dataloader_head, train_dataloader_tail)
 
@@ -232,20 +235,18 @@ def main(args):
 
         # Set training configuration
         current_learning_rate = args.learning_rate
-        optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, kge_model.parameters()),
-            lr=current_learning_rate
-        )
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, kge_model.parameters()),
+                                     lr=current_learning_rate)
         if args.warm_up_steps:
             warm_up_steps = args.warm_up_steps
         else:
             warm_up_steps = args.max_steps // 2
 
-
-        engine, *dummy = colossalai.initialize(kge_model,
-                                               optimizer,
-                                               criterion,
-                                               )
+        engine, *dummy = colossalai.initialize(
+            kge_model,
+            optimizer,
+            criterion,
+        )
 
     if args.init_checkpoint:
         # Restore model from checkpoint directory
@@ -289,18 +290,15 @@ def main(args):
 
             if args.regularization != 0.0:
                 # Use L3 regularization for ComplEx and DistMult
-                regularization = args.regularization * (
-                        kge_model.entity_embedding.norm(p=3) ** 3 +
-                        kge_model.relation_embedding.norm(p=3).norm(p=3) ** 3
-                )
+                regularization = args.regularization * (kge_model.entity_embedding.norm(p=3)**3 +
+                                                        kge_model.relation_embedding.norm(p=3).norm(p=3)**3)
                 train_loss = train_loss + regularization
                 regularization_log = {'regularization': regularization.item()}
             else:
                 regularization_log = {}
 
             log = {
-                **regularization_log,
-                'positive_sample_loss': positive_sample_loss.item(),
+                **regularization_log, 'positive_sample_loss': positive_sample_loss.item(),
                 'negative_sample_loss': negative_sample_loss.item(),
                 'loss': train_loss.item()
             }
@@ -312,10 +310,8 @@ def main(args):
             if step >= warm_up_steps:
                 current_learning_rate = current_learning_rate / 10
                 logger.info(f"Change learning_rate to {current_learning_rate} at step {step}")
-                optimizer = torch.optim.Adam(
-                    filter(lambda p: p.requires_grad, kge_model.parameters()),
-                    lr=current_learning_rate
-                )
+                optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, kge_model.parameters()),
+                                             lr=current_learning_rate)
                 warm_up_steps = warm_up_steps * 3
 
             if step % args.save_checkpoint_steps == 0:
@@ -364,31 +360,17 @@ def main(args):
                 else:
                     # Otherwise use standard (filtered) MRR, MR, HITS@1, HITS@3, and HITS@10 metrics
                     # Prepare dataloader for evaluation
-                    valid_dataloader_head = DataLoader(
-                        TestDataset(
-                            valid_triples,
-                            all_true_triples,
-                            args.nentity,
-                            args.nrelation,
-                            'head-batch'
-                        ),
-                        batch_size=args.test_batch_size,
-                        num_workers=max(1, args.cpu_num // 2),
-                        collate_fn=TestDataset.collate_fn
-                    )
+                    valid_dataloader_head = DataLoader(TestDataset(valid_triples, all_true_triples, args.nentity,
+                                                                   args.nrelation, 'head-batch'),
+                                                       batch_size=args.test_batch_size,
+                                                       num_workers=max(1, args.cpu_num // 2),
+                                                       collate_fn=TestDataset.collate_fn)
 
-                    valid_dataloader_tail = DataLoader(
-                        TestDataset(
-                            valid_triples,
-                            all_true_triples,
-                            args.nentity,
-                            args.nrelation,
-                            'tail-batch'
-                        ),
-                        batch_size=args.test_batch_size,
-                        num_workers=max(1, args.cpu_num // 2),
-                        collate_fn=TestDataset.collate_fn
-                    )
+                    valid_dataloader_tail = DataLoader(TestDataset(valid_triples, all_true_triples, args.nentity,
+                                                                   args.nrelation, 'tail-batch'),
+                                                       batch_size=args.test_batch_size,
+                                                       num_workers=max(1, args.cpu_num // 2),
+                                                       collate_fn=TestDataset.collate_fn)
 
                     valid_dataset_list = [valid_dataloader_head, valid_dataloader_tail]
 
