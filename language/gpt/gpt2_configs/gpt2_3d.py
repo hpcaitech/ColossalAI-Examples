@@ -1,5 +1,6 @@
 from colossalai.amp import AMP_TYPE
-from model_zoo.gpt.gpt import GPTLMLoss, gpt2_small
+from titans.loss.lm_loss import GPTLMLoss
+from titans.model.gpt import gpt2_small
 from torch.optim import Adam
 
 BATCH_SIZE = 4

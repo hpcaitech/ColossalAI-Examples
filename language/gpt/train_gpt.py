@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from colossalai.context.parallel_mode import ParallelMode
 from colossalai.core import global_context as gpc
+from colossalai import nn as col_nn
 from colossalai.engine.schedule import (InterleavedPipelineSchedule,
                                         PipelineSchedule)
 from colossalai.logging import disable_existing_loggers, get_dist_logger
@@ -15,7 +16,8 @@ from colossalai.trainer import Trainer, hooks
 from colossalai.utils import is_using_pp, colo_set_process_memory_fraction
 from colossalai.utils.timer import MultiTimer
 from colossalai.zero.init_ctx import ZeroInitContext
-from model_zoo.gpt.gpt import GPTLMLoss
+from colossalai.utils.model.pipelinable import PipelinableContext
+from titans.loss.lm_loss import GPTLMLoss
 
 from dataset.webtext import WebtextDataset
 
@@ -54,18 +56,44 @@ def main():
     logger.info('Build model', ranks=[0])
     use_pipeline = is_using_pp()
     use_interleaved = hasattr(gpc.config.model, 'num_chunks')
+    num_chunks = getattr(gpc.config.model, 'num_chunks', 1)
     use_zero3 = hasattr(gpc.config, 'zero')
 
-    ctx = contextlib.nullcontext()
-    if use_zero3:
-        ctx = ZeroInitContext(target_device=torch.cuda.current_device(),
-                              shard_strategy=gpc.config.zero.model_config.shard_strategy,
-                              shard_param=True
-                              )
-    with ctx:
-        model = gpc.config.model.pop('type')(**gpc.config.model)
-    if use_pipeline and use_interleaved and not isinstance(model, nn.ModuleList):
-        model = nn.ModuleList([model])
+    if not use_pipeline:
+        ctx = contextlib.nullcontext()
+        if use_zero3:
+            ctx = ZeroInitContext(target_device=torch.cuda.current_device(),
+                                shard_strategy=gpc.config.zero.model_config.shard_strategy,
+                                shard_param=True
+                                )
+        with ctx:
+            model = gpc.config.model.pop('type')(**gpc.config.model)
+    else:
+        pipelinable = PipelinableContext()
+        with pipelinable:
+            model = gpc.config.model.pop('type')(**gpc.config.model)
+        def mask_function(attention_mask=None):
+            if attention_mask is not None:
+                batch_size = gpc.config.BATCH_SIZE//gpc.config.NUM_MICRO_BATCHES
+                attention_mask = attention_mask.view(batch_size, -1)
+                attention_mask = col_nn.partition_batch(attention_mask)
+                attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
+                attention_mask = (1.0 - attention_mask) * -10000.0
+            return attention_mask
+        # GPT2_small exec_seq
+        # (lyl)TODO: The exec_seq for gpt3 will be added here and to_layer_list should be more friendly to use.
+        exec_seq = ['embed', mask_function, 'blocks.0', 'blocks.1', 'blocks.2', 'blocks.3', 'blocks.4', 'blocks.5', (mask_function, "front"), \
+                    'blocks.6', 'blocks.7', 'blocks.8', 'blocks.9', 'blocks.10', 'blocks.11', 'norm', 'head']
+        pipelinable.to_layer_list(exec_seq)
+        ctx = contextlib.nullcontext()
+        # (lyl)TODO: Zero context and pipelinable context should be integrated into one context.
+        if use_zero3:
+            ctx = ZeroInitContext(target_device=torch.cuda.current_device(),
+                                shard_strategy=gpc.config.zero.model_config.shard_strategy,
+                                shard_param=True
+                                )
+        with ctx:
+            model = pipelinable.partition(num_chunks, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
 
     if use_zero3:
         numel = ctx.model_numel_tensor.item()
@@ -124,7 +152,7 @@ def main():
         hooks=hook_list,
         display_progress=True,
         return_output_label=False,
-        max_steps=100
+        max_steps=5
     )
 
 
