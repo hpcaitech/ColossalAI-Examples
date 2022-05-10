@@ -1,4 +1,4 @@
-from model import GPT3_pipeline_hybrid
+from titans.model.gpt import gpt3
 from torch.optim import Adam
 from colossalai.amp import AMP_TYPE
 import torch
@@ -26,8 +26,7 @@ optimizer = dict(
 )
 
 model = dict(
-    type=GPT3_pipeline_hybrid,
+    type=gpt3,
     checkpoint=True,
     dtype=torch.half,
-    num_chunks=1,
 )

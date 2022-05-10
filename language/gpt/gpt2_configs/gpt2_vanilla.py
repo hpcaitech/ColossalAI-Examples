@@ -1,5 +1,5 @@
 from colossalai.amp import AMP_TYPE
-from model_zoo.gpt.gpt import gpt2_small
+from titans.model.gpt import gpt2_small
 from torch.optim import Adam
 
 
