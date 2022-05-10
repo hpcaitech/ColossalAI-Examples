@@ -1,4 +1,3 @@
-
 import os
 
 import colossalai
@@ -10,13 +9,13 @@ from colossalai.logging import get_dist_logger
 from colossalai.nn import CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.utils import is_using_pp, get_dataloader
-from colossalai.engine.schedule import PipelineSchedule, NonPipelineSchedule
-from model.vit import build_pipeline_vit
-from model_zoo.vit.vit import _create_vit_model
+from colossalai.utils.model.pipelinable import PipelinableContext
+from titans.model.vit.vit import _create_vit_model
 from tqdm import tqdm
 
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
+
 
 def build_cifar(batch_size):
     transform_train = transforms.Compose([
@@ -36,6 +35,7 @@ def build_cifar(batch_size):
     train_dataloader = get_dataloader(dataset=train_dataset, shuffle=True, batch_size=batch_size, pin_memory=True)
     test_dataloader = get_dataloader(dataset=test_dataset, batch_size=batch_size, pin_memory=True)
     return train_dataloader, test_dataloader
+
 
 def main():
     # initialize distributed setting
@@ -70,7 +70,12 @@ def main():
                         checkpoint=gpc.config.CHECKPOINT)
 
     if use_pipeline:
-        model = build_pipeline_vit(num_layers=model_kwargs['depth'], num_chunks=1, **model_kwargs)
+        pipelinable = PipelinableContext()
+        with pipelinable:
+            model = _create_vit_model(**model_kwargs)
+        pipelinable.to_layer_list()
+        pipelinable.load_policy("uniform")
+        model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
     else:
         model = _create_vit_model(**model_kwargs)
 
@@ -85,7 +90,7 @@ def main():
     logger.info(f"number of parameters: {total_numel} on pipeline stage {pipeline_stage}")
 
     # craete dataloaders
-    train_dataloader , test_dataloader = build_cifar()
+    train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE)
 
     # create loss function
     criterion = CrossEntropyLoss(label_smoothing=0.1)
@@ -122,10 +127,7 @@ def main():
         engine.train()
 
         if gpc.get_global_rank() == 0:
-            description = 'Epoch {} / {}'.format(
-                epoch,
-                gpc.config.NUM_EPOCHS
-            )
+            description = 'Epoch {} / {}'.format(epoch, gpc.config.NUM_EPOCHS)
             progress = tqdm(range(len(train_dataloader)), desc=description)
         else:
             progress = range(len(train_dataloader))
