@@ -1,5 +1,7 @@
 # Sequence Parallel BERT
 
+![Still In Progress](https://img.shields.io/badge/-Still%20In%20Progress-orange)
+
 In this example, we implemented BERT with sequence parallelism. Sequence parallelism splits the input tensor and intermediate 
 activation along the sequence dimension. This method can achieve better memory efficiency and allows us to train with larger batch size and longer sequence length.
 
@@ -21,7 +23,7 @@ mkdir data && cd ./data
 wget https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2
 
 # install wiki extractor
-git clone https://github.com/attardi/wikiextractor.git 
+git clone https://github.com/FrankLeeeee/wikiextractor.git
 pip install ./wikiextractor
 
 # extractmodule 

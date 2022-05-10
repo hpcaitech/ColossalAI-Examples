@@ -1,8 +1,9 @@
 import torch
-from model import GPT3_pipeline_1D
+from titans.model.gpt import gpt3
+from titans.loss.vocab_cross_entropy import vocab_parallel_cross_entropy
 from torch.optim import Adam
 from colossalai.amp import AMP_TYPE
-from model import vocab_parallel_cross_entropy
+
 
 
 BATCH_SIZE = 192
@@ -27,11 +28,9 @@ optimizer = dict(
 )
 
 model = dict(
-    type=GPT3_pipeline_1D,
+    type=gpt3,
     checkpoint=True,
     dtype=torch.half,
-    fused=True,
-    num_chunks=1,
 )
 
 loss_fn = dict(type=vocab_parallel_cross_entropy)

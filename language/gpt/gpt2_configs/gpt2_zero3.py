@@ -1,6 +1,6 @@
 from colossalai.nn.optimizer import HybridAdam
 from colossalai.zero.shard_utils import TensorShardStrategy
-from model_zoo.gpt.gpt import gpt2_small
+from titans.model.gpt import gpt2_small
 
 BATCH_SIZE = 2
 NUM_EPOCHS = 60

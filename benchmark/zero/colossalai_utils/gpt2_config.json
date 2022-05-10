@@ -1,0 +1,28 @@
+{
+  "method": "colossalai",
+  "model": {
+    "type": "gpt2_10b"
+  },
+  "hyperparameter": {
+    "batch_size": 1,
+    "steps_per_epoch": 3
+  },
+  "fp16": {
+    "initial_scale": 32768,
+    "min_scale": 1,
+    "growth_factor": 2.0,
+    "backoff_factor": 0.5,
+    "growth_interval": 1000
+  },
+  "gradient_clipping": 0.0,
+  "zero": {
+    "reduce_scatter_bucket_size_mb": 25,
+    "fp32_reduce_scatter": false,
+    "offload_config": {
+      "device": "cpu"
+    },
+    "reuse_fp16_shard": true,
+    "version": 2
+  },
+  "use_mem_monitor": true
+}

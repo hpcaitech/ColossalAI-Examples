@@ -1,0 +1,27 @@
+{
+  "method": "colossalai",
+  "model": {
+    "type": "gpt2_small"
+  },
+  "hyperparameter": {
+    "batch_size": 3,
+    "steps_per_epoch": 10
+  },
+  "fp16": {
+    "initial_scale": 32768,
+    "min_scale": 1,
+    "growth_factor": 2.0,
+    "backoff_factor": 0.5,
+    "growth_interval": 1000
+  },
+  "gradient_clipping": 0.0,
+  "zero": {
+    "mixed_precision": true,
+    "reshard_after_forward": false,
+    "offload_config": {
+      "device": "cpu"
+    },
+    "version": 1
+  },
+  "use_mem_monitor": true
+}
