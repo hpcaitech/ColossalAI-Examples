@@ -87,7 +87,7 @@ If you couldn't install it successfully, you may try to replace the `cMinhash.cp
 #!/usr/bin/env sh
 export DATA=/path/to/train_data.json
 
-torchrun --standalone --nproc_per_node=<num_gpus> train_gpt.py --config=gpt2_configs/<config_file> --from_torch
+colossalai run --nproc_per_node=<num_gpus> train_gpt.py --config=gpt2_configs/<config_file> --from_torch
 ```
 
 You can copy it and save it as `run.sh`. Then use `bash ./run.sh` to run the script in your terminal.

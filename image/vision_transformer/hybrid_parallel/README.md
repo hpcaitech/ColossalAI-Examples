@@ -93,14 +93,7 @@ colossalai.launch_from_torch(config=args.config)
 
 In your terminal
 ```shell
-# If your torch >= 1.10.0
-torchrun --standalone --nproc_per_node <world_size>  train.py --config config.py
-
-# If your torch >= 1.9.0
-python -m torch.distributed.run --standalone --nproc_per_node=8 train.py --config config.py
-
-# Otherwise
-python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr <node_name> --master_port 29500 train.py --config ./config.py
+colossalai run --nproc_per_node <world_size>  train.py --config config.py
 ```
 
 ### Using OpenMPI
