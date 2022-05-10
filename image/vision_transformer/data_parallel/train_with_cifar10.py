@@ -49,7 +49,7 @@ def main():
     logger.info("initialized distributed environment", ranks=[0])
 
     # build model
-    model = vit_base_patch16_224(drop_rate=0.1, num_classes=gpc.config.NUM_CLASSES)
+    model = vit_base_patch16_224(drop_rate=0.1, num_classes=10)
 
     # build dataloader
     train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE)
