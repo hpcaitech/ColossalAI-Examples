@@ -65,7 +65,7 @@ def main():
                         depth=gpc.config.DEPTH,
                         num_heads=gpc.config.NUM_HEADS,
                         mlp_ratio=gpc.config.MLP_RATIO,
-                        num_classes=gpc.config.NUM_CLASSES,
+                        num_classes=10,
                         init_method='jax',
                         checkpoint=gpc.config.CHECKPOINT)
 
