@@ -78,8 +78,6 @@ def main():
         with ctx:
             model = pipelinable.partition(num_chunks, gpc.pipeline_parallel_size,
                                           gpc.get_local_rank(ParallelMode.PIPELINE))
-        print(model)
-        assert False
 
     criterion = getattr(gpc.config, 'loss_fn', None)
     if criterion is not None:
