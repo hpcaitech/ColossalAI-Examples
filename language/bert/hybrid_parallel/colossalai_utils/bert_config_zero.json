@@ -1,0 +1,28 @@
+{
+  "method": "colossalai",
+  "model": {
+    "type": "bert_base"
+  },
+  "hyperparameter": {
+    "batch_size": 8,
+    "num_epochs": 20,
+    "steps_per_epoch": 10
+  },
+  "gradient_clipping": 1.0,
+  "zero": {
+    "model_config": {
+      "offload_config": {
+        "device": "cpu"
+      }
+    },
+    "optimizer_config": {
+      "cpu_offload": true,
+      "initial_scale": 256,
+      "min_scale": 1,
+      "growth_factor": 2.0,
+      "backoff_factor": 0.5,
+      "growth_interval": 1000
+    }
+  },
+  "use_mem_monitor": true
+}
