@@ -8,6 +8,7 @@ from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPoli
 
 
 class DaliDataloader(DALIClassificationIterator):
+
     def __init__(self,
                  tfrec_filenames,
                  tfrec_idx_filenames,
@@ -63,16 +64,17 @@ class DaliDataloader(DALIClassificationIterator):
                                               mean=[127.5],
                                               std=[127.5],
                                               mirror=flip_lr)
-            label = inputs["image/class/label"] - 1  # 0-999
+            label = inputs["image/class/label"] - 1    # 0-999
             # LSG: element_extract will raise exception, let's flatten outside
             # label = fn.element_extract(label, element_map=0)  # Flatten
-            if cuda:  # transfer data to gpu
+            if cuda:    # transfer data to gpu
                 pipe.set_outputs(images.gpu(), label.gpu())
             else:
                 pipe.set_outputs(images, label)
 
         pipe.build()
-        last_batch_policy = LastBatchPolicy.DROP if training else LastBatchPolicy.PARTIAL
+        #last_batch_policy = LastBatchPolicy.DROP if training else LastBatchPolicy.PARTIAL
+        last_batch_policy = LastBatchPolicy.FILL
         super().__init__(pipe, reader_name="Reader", auto_reset=True, last_batch_policy=last_batch_policy)
 
     def __iter__(self):
@@ -82,7 +84,10 @@ class DaliDataloader(DALIClassificationIterator):
         return self
 
     def __next__(self):
-        data = super().__next__()
+        try:
+            data = super().__next__()
+        except StopIteration:
+            data = super().__next__()
         img, label = data[0]['data'], data[0]['label']
         label = label.squeeze()
 

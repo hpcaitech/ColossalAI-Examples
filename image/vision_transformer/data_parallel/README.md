@@ -8,6 +8,8 @@ On a single server, you can directly use torch.distributed to start pre-training
 
 Before running, you should `export DATA=/path/to/imagenet`.
 
+If you don't prepare the imagenet dataset, you can use cifar10 as your dataset, and use train_with_cifar10 training script.
+
 If you are using `colossalai.launch_from_torch`, do this in your training script:
 
 ```python

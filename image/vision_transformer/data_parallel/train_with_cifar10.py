@@ -11,10 +11,8 @@ from colossalai.nn.metric import Accuracy
 from colossalai.trainer import Trainer, hooks
 from timm.models import vit_base_patch16_224
 
-
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
-
 
 
 def build_cifar(batch_size):
@@ -35,6 +33,7 @@ def build_cifar(batch_size):
     train_dataloader = get_dataloader(dataset=train_dataset, shuffle=True, batch_size=batch_size, pin_memory=True)
     test_dataloader = get_dataloader(dataset=test_dataset, batch_size=batch_size, pin_memory=True)
     return train_dataloader, test_dataloader
+
 
 def main():
     # initialize distributed setting
@@ -64,9 +63,8 @@ def main():
     # lr_scheduelr
     lr_scheduler = LinearWarmupLR(optimizer, warmup_steps=50, total_steps=gpc.config.NUM_EPOCHS)
 
-    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(
-        model, optimizer, criterion, train_dataloader, test_dataloader
-    )
+    engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model, optimizer, criterion, train_dataloader,
+                                                                         test_dataloader)
     logger.info("initialized colossalai components", ranks=[0])
 
     # build trainer
@@ -78,21 +76,15 @@ def main():
         hooks.AccuracyHook(accuracy_func=Accuracy()),
         hooks.LogMetricByEpochHook(logger),
         hooks.LRSchedulerHook(lr_scheduler, by_epoch=True),
-
-        # comment if you do not need to use the hooks below
-        hooks.SaveCheckpointHook(interval=1, checkpoint_dir='./ckpt'),
-        hooks.TensorboardHook(log_dir='./tb_logs', ranks=[0]),
     ]
 
     # start training
-    trainer.fit(
-        train_dataloader=train_dataloader,
-        test_dataloader=test_dataloader,
-        epochs=gpc.config.NUM_EPOCHS,
-        hooks=hook_list,
-        display_progress=True,
-        test_interval=1
-    )
+    trainer.fit(train_dataloader=train_dataloader,
+                test_dataloader=test_dataloader,
+                epochs=gpc.config.NUM_EPOCHS,
+                hooks=hook_list,
+                display_progress=True,
+                test_interval=1)
 
 
 if __name__ == '__main__':

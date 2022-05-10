@@ -4,10 +4,10 @@ In this example, we will be running Vision Transformer on the ImageNet dataset w
 Hybrid parallelism includes data, tensor and pipeline parallelism
 We provided different configurations for you to execute different tensor parallelism including 1D, 2D, 2.5D and 3D tensor parallelism.
 
-## How to Prepare ImageNet Dataset
+## How to Prepare Dataset
 
 You can download the ImageNet dataset from the [ImageNet official website](https://www.image-net.org/download.php). You should get the raw images after downloading the dataset. As we use [DALI](https://github.com/NVIDIA/DALI) to read data, we use the TFRecords dataset instead of raw Imagenet dataset. This offers better speedup to IO. If you don't have TFRecords dataset, follow [imagenet-tools](https://github.com/ver217/imagenet-tools) to build one.
-
+If you don't want to download the ImageNet, you can choose the cifar10 as your dataset, and use the train_with_cifar10 train script.
 
 ## How to Change the Configuration for Your Machines
 
