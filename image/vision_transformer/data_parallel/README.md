@@ -2,6 +2,10 @@
 
 A common way to speed up AI model training is to implement large-batch training with the help of data parallelism, but this requires expensive supercomputer clusters. In this example, we used a small server with only 4 GPUs to reproduce the large-scale pre-training of Vision Transformer (ViT) on ImageNet-1K in 14 hours.
 
+## requirement
+
+To use pipeline parallel training, you should install colossalai from the **latest** main branch.
+
 # How to run
 
 On a single server, you can directly use torch.distributed to start pre-training on multiple GPUs in parallel. In Colossal-AI, we provided several launch methods to init the distributed backend. You can use `colossalai.launch` and `colossalai.get_default_parser` to pass the parameters via command line. If you happen to use launchers such as SLURM, OpenMPI and PyTorch launch utility, you can use `colossalai.launch_from_<torch/slurm/openmpi>` to read rank and world size from the environment variables directly for convenience. 
@@ -21,14 +25,7 @@ colossalai.launch_from_torch(config=args.config)
 
 In your terminal
 ```shell
-# If your torch >= 1.10.0
-torchrun --standalone --nproc_per_node <world_size>  train.py --config config.py
-
-# If your torch >= 1.9.0
-python -m torch.distributed.run --standalone --nproc_per_node=8 train.py --config config.py
-
-# Otherwise
-python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr <node_name> --master_port 29500 train.py --config ./config.py
+colossalai run --nproc_per_node <world_size>  train.py --config config.py
 ```
 ---
 
@@ -38,26 +35,6 @@ If you are using `launch_from_slurm`, you can check out more information about S
 HOST=<node name> srun bash ./scripts/train_slurm.sh
 ```
 ---
-
-If you are using `colossalai.launch`, do this:
-In your training script:
-```python
-# initialize distributed setting
-parser = colossalai.get_default_parser()
-args = parser.parse_args()
-colossalai.launch(config=args.config,
-                    rank=args.rank,
-                    world_size=args.world_size,
-                    host=args.host,
-                    port=args.port,
-                    backend=args.backend
-                    )
-```
-
-In your terminal:
-```shell
-<some_launcher> python train.py --config ./config.py --rank <rank> --world_size <world_size> --host <node name> --port 29500
-```
 
 
 # Experiments

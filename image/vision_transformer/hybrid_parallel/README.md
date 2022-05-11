@@ -60,6 +60,10 @@ WARMUP_EPOCHS = 32
 
 ```
 
+## requirement
+
+To use pipeline parallel training, you should install colossalai from the **latest** main branch.
+
 ## How to Run
 
 Before you start training, you need to set the environment variable `DATA` so that the script knows where to fetch the data for DALI dataloader. If you do not know to make prepare the data for DALI dataloader, please jump to `How to Prepare ImageNet Dataset` section above.
@@ -93,14 +97,7 @@ colossalai.launch_from_torch(config=args.config)
 
 In your terminal
 ```shell
-# If your torch >= 1.10.0
-torchrun --standalone --nproc_per_node <world_size>  train.py --config config.py
-
-# If your torch >= 1.9.0
-python -m torch.distributed.run --standalone --nproc_per_node=8 train.py --config config.py
-
-# Otherwise
-python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr <node_name> --master_port 29500 train.py --config ./config.py
+colossalai run --nproc_per_node <world_size>  train.py --config config.py
 ```
 
 ### Using OpenMPI
