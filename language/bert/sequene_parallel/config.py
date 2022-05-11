@@ -1,14 +1,13 @@
 from colossalai.amp import AMP_TYPE
 
-
-DATA_PATH = '/project/home/p200012/sgli/projects/colossalai/tests/02-test-sequence-bert/megatron/Megatron-LM/my-bert-small-corpus_text_sentence'
-VOCAB_FILE_PATH = '/mnt/tier2/project/p200012/sgli/projects/colossalai/tests/02-test-sequence-bert/vocab/bert-large-uncased-vocab.txt'
+DATA_PATH = ''
+VOCAB_FILE_PATH = ''
 
 # hyper-parameters
 TRAIN_ITERS = 1000000
 DECAY_ITERS = 990000
 WARMUP_FRACTION = 0.01
-GLOBAL_BATCH_SIZE = 32  # dp world size * sentences per GPU
+GLOBAL_BATCH_SIZE = 32    # dp world size * sentences per GPU
 EVAL_ITERS = 10
 EVAL_INTERVAL = 10
 LR = 0.0001
@@ -31,18 +30,10 @@ SEED = 1234
 # only enabled when pipeline > 1
 NUM_MICRO_BATCHES = 4
 
-
 # colossalai config
-parallel = dict(
-    pipeline=1,
-    tensor=dict(size=4, mode='sequence')
-)
+parallel = dict(pipeline=1, tensor=dict(size=4, mode='sequence'))
 
-fp16 = dict(
-    mode=AMP_TYPE.NAIVE,
-    log_num_zeros_in_grad=True,
-    verbose=True
-)
+fp16 = dict(mode=AMP_TYPE.NAIVE, verbose=True)
 
 clip_grad_norm = 1.0
 
