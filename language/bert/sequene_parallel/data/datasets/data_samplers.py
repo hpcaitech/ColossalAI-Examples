@@ -12,9 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Dataloaders."""
-
 
 import torch
 import random
@@ -22,12 +20,7 @@ from colossalai.core import global_context as gpc
 from colossalai.context import ParallelMode
 
 
-def build_pretraining_data_loader(dataset,
-                                  consumed_samples,
-                                  micro_batch_size,
-                                  dataloader_type='single',
-                                  num_workers=2
-                                  ):
+def build_pretraining_data_loader(dataset, consumed_samples, micro_batch_size, dataloader_type='single', num_workers=0):
     """Buld dataloader given an input dataset."""
 
     if dataset is None:
@@ -35,34 +28,33 @@ def build_pretraining_data_loader(dataset,
 
     # Megatron sampler
     if dataloader_type == 'single':
-        batch_sampler = MegatronPretrainingSampler(
-            total_samples=len(dataset),
-            consumed_samples=consumed_samples,
-            micro_batch_size=micro_batch_size,
-            data_parallel_rank=gpc.get_local_rank(ParallelMode.DATA),
-            data_parallel_size=gpc.get_world_size(ParallelMode.DATA))
+        batch_sampler = MegatronPretrainingSampler(total_samples=len(dataset),
+                                                   consumed_samples=consumed_samples,
+                                                   micro_batch_size=micro_batch_size,
+                                                   data_parallel_rank=gpc.get_local_rank(ParallelMode.DATA),
+                                                   data_parallel_size=gpc.get_world_size(ParallelMode.DATA))
     elif dataloader_type == 'cyclic':
-        batch_sampler = MegatronPretrainingRandomSampler(
-            total_samples=len(dataset),
-            consumed_samples=consumed_samples,
-            micro_batch_size=micro_batch_size,
-            data_parallel_rank=gpc.get_local_rank(ParallelMode.DATA),
-            data_parallel_size=gpc.get_world_size(ParallelMode.DATA))
+        batch_sampler = MegatronPretrainingRandomSampler(total_samples=len(dataset),
+                                                         consumed_samples=consumed_samples,
+                                                         micro_batch_size=micro_batch_size,
+                                                         data_parallel_rank=gpc.get_local_rank(ParallelMode.DATA),
+                                                         data_parallel_size=gpc.get_world_size(ParallelMode.DATA))
     else:
-        raise Exception('{} dataloader type is not supported.'.format(
-            dataloader_type))
+        raise Exception('{} dataloader type is not supported.'.format(dataloader_type))
 
     # Torch dataloader.
-    return torch.utils.data.DataLoader(dataset,
-                                       batch_sampler=batch_sampler,
-                                       num_workers=num_workers,
-                                       pin_memory=True)
+    return torch.utils.data.DataLoader(dataset, batch_sampler=batch_sampler, num_workers=num_workers, pin_memory=True)
 
 
 class MegatronPretrainingSampler:
 
-    def __init__(self, total_samples, consumed_samples, micro_batch_size,
-                 data_parallel_rank, data_parallel_size, drop_last=True):
+    def __init__(self,
+                 total_samples,
+                 consumed_samples,
+                 micro_batch_size,
+                 data_parallel_rank,
+                 data_parallel_size,
+                 drop_last=True):
         # Keep a copy of input params for later use.
         self.total_samples = total_samples
         self.consumed_samples = consumed_samples
@@ -110,8 +102,7 @@ class MegatronPretrainingSampler:
 
 class MegatronPretrainingRandomSampler:
 
-    def __init__(self, total_samples, consumed_samples, micro_batch_size,
-                 data_parallel_rank, data_parallel_size):
+    def __init__(self, total_samples, consumed_samples, micro_batch_size, data_parallel_rank, data_parallel_size):
         # Keep a copy of input params for later use.
         self.total_samples = total_samples
         self.consumed_samples = consumed_samples
