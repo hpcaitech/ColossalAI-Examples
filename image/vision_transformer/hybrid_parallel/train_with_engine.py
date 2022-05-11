@@ -13,7 +13,7 @@ from colossalai.logging import get_dist_logger
 from colossalai.nn import CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.utils import is_using_pp
-from dataloader import DaliDataloader
+from titans.dataloader.imagenet import DaliDataloader
 from colossalai.utils.model.pipelinable import PipelinableContext
 from titans.model.vit.vit import _create_vit_model
 from tqdm import tqdm

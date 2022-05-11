@@ -11,28 +11,7 @@ from colossalai.nn.metric import Accuracy
 from colossalai.trainer import Trainer, hooks
 from timm.models import vit_base_patch16_224
 
-from torchvision import transforms
-from torchvision.datasets import CIFAR10
-
-
-def build_cifar(batch_size):
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(224, pad_if_needed=True),
-        transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR10),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-    transform_test = transforms.Compose([
-        transforms.Resize(224),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-    train_dataset = CIFAR10(root=os.environ['DATA'], train=True, download=True, transform=transform_train)
-    test_dataset = CIFAR10(root=os.environ['DATA'], train=False, transform=transform_test)
-    train_dataloader = get_dataloader(dataset=train_dataset, shuffle=True, batch_size=batch_size, pin_memory=True)
-    test_dataloader = get_dataloader(dataset=test_dataset, batch_size=batch_size, pin_memory=True)
-    return train_dataloader, test_dataloader
+from titans.dataloader.cifar10 import build_cifar
 
 
 def main():
@@ -52,7 +31,7 @@ def main():
     model = vit_base_patch16_224(drop_rate=0.1, num_classes=10)
 
     # build dataloader
-    train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE)
+    train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE, pad_if_needed=True)
 
     # build optimizer
     optimizer = colossalai.nn.Lamb(model.parameters(), lr=1.8e-2, weight_decay=0.1)
