@@ -45,21 +45,7 @@ Loss Function:
 
 For example, this command train a RotatE model on WIN18RR dataset for a single GPU.
 ```bash
-python -m torch.distributed.launch --nproc_per_node 1 --master_addr localhost --master_port 29500 train.py
- --do_train \
- --cuda \
- --do_valid \
- --do_test \
- --data_path data/wn18rr \
- --model RotatE \
- -n 256 -b 1024 -d 1000 \
- -g 24.0 -a 1.0 -adv \
- -lr 0.0001 --max_steps 150000 \
- -save results/RotatE_wn18rr_0 --test_batch_size 16 -de
-```
-Check argparse configuration at train.py for more arguments and more details. If you have PyTorch version >= 1.10, you can use `torchrun` instead.
-```bash
-torchrun --standalone --nnodes=1 --nproc_per_node 1 train.py
+colossalai run --nproc_per_node 1 train.py
  --do_train \
  --cuda \
  --do_valid \

@@ -87,7 +87,7 @@ If you couldn't install it successfully, you may try to replace the `cMinhash.cp
 #!/usr/bin/env sh
 export DATA=/path/to/train_data.json
 
-torchrun --standalone --nproc_per_node=<num_gpus> train_gpt.py --config=gpt2_configs/<config_file> --from_torch
+colossalai run --nproc_per_node=<num_gpus> train_gpt.py --config=gpt2_configs/<config_file>
 ```
 
 You can copy it and save it as `run.sh`. Then use `bash ./run.sh` to run the script in your terminal.
@@ -157,6 +157,9 @@ In particular, `TENSOR_PARALLEL` should be a square number and cubic number for 
 respectively, and `TENSOR_PARALELL / DEPTH` should be a square number for 2.5D.
 
 #### **Pipeline Parallel**
+
+
+To use pipeline parallel training, you should install colossalai from the **latest** main branch.
 
 In `gpt2_pp.py`, there are lines:
 

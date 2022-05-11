@@ -12,31 +12,9 @@ from colossalai.utils import MultiTimer, get_dataloader
 from colossalai.context import ParallelMode
 from colossalai.utils.model.pipelinable import PipelinableContext
 
-from torchvision import transforms
+from titans.dataloader.cifar10 import build_cifar
 from torchvision.models import resnet50
-from torchvision.datasets import CIFAR10
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
-
-
-def build_cifar(batch_size):
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR10),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-    transform_test = transforms.Compose([
-        transforms.Resize(32),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-    train_dataset = CIFAR10(root=os.environ['DATA'], train=True, download=True, transform=transform_train)
-    test_dataset = CIFAR10(root=os.environ['DATA'], train=False, transform=transform_test)
-    train_dataloader = get_dataloader(dataset=train_dataset, shuffle=True, batch_size=batch_size, pin_memory=True)
-    test_dataloader = get_dataloader(dataset=test_dataset, batch_size=batch_size, pin_memory=True)
-    return train_dataloader, test_dataloader
-
 
 # Train
 
@@ -72,7 +50,7 @@ def train():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     # build dataloader
-    train_dataloader, test_dataloader = build_cifar(BATCH_SIZE)
+    train_dataloader, test_dataloader = build_cifar(BATCH_SIZE, padding=4)
 
     lr_scheduler = col_nn.lr_scheduler.LinearWarmupLR(optimizer, NUM_EPOCHS, warmup_steps=1)
     engine, train_dataloader, test_dataloader, lr_scheduler = colossalai.initialize(model, optimizer, criterion,
