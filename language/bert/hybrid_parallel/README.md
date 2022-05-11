@@ -1,4 +1,7 @@
-# Bert Benchmark
+# Bert
+
+![Still In Progress](https://img.shields.io/badge/-Still%20In%20Progress-orange)
+
 Bert Benchmark with data parallel, tensor parallel(tp), pipeline parallel(pp) and ZeRO.
 
 ## Setup
