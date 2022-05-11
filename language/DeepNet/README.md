@@ -24,7 +24,7 @@ The decoder-only DeepNet model is modified from the GPT model. In this example, 
 #!/usr/bin/env sh
 export DATA=/path/to/train_data.json
 
-colossalai run --nproc_per_node=<num_gpus> train_deepnet_decoder.py --config=decoder_configs/deepnet_pp1d.py --from_torch
+colossalai run --nproc_per_node=<num_gpus> train_deepnet_decoder.py --config=decoder_configs/deepnet_pp1d.py
 ```
 
 
