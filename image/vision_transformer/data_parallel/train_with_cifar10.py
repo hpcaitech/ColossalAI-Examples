@@ -31,7 +31,8 @@ def main():
     model = vit_base_patch16_224(drop_rate=0.1, num_classes=10)
 
     # build dataloader
-    train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE, pad_if_needed=True)
+    root = os.environ['DATA']
+    train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE, root, pad_if_needed=True)
 
     # build optimizer
     optimizer = colossalai.nn.Lamb(model.parameters(), lr=1.8e-2, weight_decay=0.1)
