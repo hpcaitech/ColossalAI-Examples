@@ -15,6 +15,9 @@ DeepNet can scale transformer models to 1000 layers by applying DeepNorm. This C
 ### Decoder-only DeepNet
 The decoder-only DeepNet model is modified from the GPT model. In this example, we use WebText dataset for training. The way we prepare dataset is same as which in [Colossal-AI based GPT example](https://github.com/hpcaitech/ColossalAI-Examples/tree/main/language/gpt).
 
+## requirement
+
+To use pipeline parallel training, you should install colossalai from the **latest** main branch.
 
 ## How to run
 

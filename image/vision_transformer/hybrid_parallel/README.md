@@ -60,6 +60,10 @@ WARMUP_EPOCHS = 32
 
 ```
 
+## requirement
+
+To use pipeline parallel training, you should install colossalai from the **latest** main branch.
+
 ## How to Run
 
 Before you start training, you need to set the environment variable `DATA` so that the script knows where to fetch the data for DALI dataloader. If you do not know to make prepare the data for DALI dataloader, please jump to `How to Prepare ImageNet Dataset` section above.

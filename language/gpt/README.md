@@ -158,6 +158,9 @@ respectively, and `TENSOR_PARALELL / DEPTH` should be a square number for 2.5D.
 
 #### **Pipeline Parallel**
 
+
+To use pipeline parallel training, you should install colossalai from the **latest** main branch.
+
 In `gpt2_pp.py`, there are lines:
 
 ```Python
