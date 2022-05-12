@@ -8,9 +8,9 @@ of the [**documentation**](https://www.colossalai.org/).
 
 This repository is built upon Colossal-AI and Titans.
 
-<center>
-<img src="https://raw.githubusercontent.com/hpcaitech/public_assets/main/examples/images/repo_relation.png" width="300" title="repo-architecture">
-</center>
+<div align="center">
+    <img src="https://raw.githubusercontent.com/hpcaitech/public_assets/main/examples/images/repo_relation.png" width="300" title="repo-architecture">
+</div>
 
 
 ### 🚀 Quick Links
