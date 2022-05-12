@@ -6,15 +6,27 @@ This repository provides various examples for **Colossal-AI**. For each feature 
 Colossal-AI, you can find a simple example in the `feature` folder and a corresponding tutorial in feature section of the [**documentation**](https://www.colossalai.org/). For more complex examples for domain-specific models, you can find them in this repository as well. Some of them are covered in the advanced tutorials 
 of the [**documentation**](https://www.colossalai.org/).
 
+This repository is built upon Colossal-AI and Titans.
+
+![repo-arch](https://raw.githubusercontent.com/hpcaitech/public_assets/main/examples/images/repo_relation.png)
+
+
 ### 🚀 Quick Links
 
 [**Colossal-AI**](https://github.com/hpcaitech/ColossalAI) | 
+[**Titans**](https://github.com/hpcaitech/Titans)
 [**Paper**](https://arxiv.org/abs/2110.14883) | 
 [**Documentation**](https://www.colossalai.org/) | 
 [**Forum**](https://github.com/hpcaitech/ColossalAI/discussions) | 
 [**Blog**](https://www.colossalai.org/) 
 
 ## Setup
+
+1. Install Colossal-AI
+
+You can download Colossal-AI [here](https://www.colossalai.org/download).
+
+2. Install dependencies
 
 ```
 pip install -r requirements.txt
