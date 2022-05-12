@@ -69,7 +69,7 @@ def main():
     logger.info(f"number of parameters: {total_numel} on pipeline stage {pipeline_stage}")
 
     # craete dataloaders
-    root = os.environ['DATA']
+    root = os.environ.get('DATA', './data')
     train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE, root, pad_if_needed=True)
 
     # create loss function

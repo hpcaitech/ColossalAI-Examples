@@ -31,7 +31,7 @@ def main():
     model = vit_base_patch16_224(drop_rate=0.1, num_classes=10)
 
     # build dataloader
-    root = os.environ['DATA']
+    root = os.environ.get('DATA', './data')
     train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE, root, pad_if_needed=True)
 
     # build optimizer
