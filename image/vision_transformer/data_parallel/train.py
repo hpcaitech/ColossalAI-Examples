@@ -10,39 +10,9 @@ from colossalai.nn.lr_scheduler import LinearWarmupLR
 from colossalai.trainer import Trainer, hooks
 from timm.models import vit_base_patch16_224
 
-from titans.dataloader.imagenet import DaliDataloaderWithRandAug
+from titans.dataloader.imagenet import build_dali_imagenet
 from mixup import MixupAccuracy, MixupLoss
 from myhooks import TotalBatchsizeHook
-
-
-def build_dali_train():
-    root = os.environ['DATA']
-    train_pat = os.path.join(root, 'train/*')
-    train_idx_pat = os.path.join(root, 'idx_files/train/*')
-    return DaliDataloaderWithRandAug(sorted(glob.glob(train_pat)),
-                                     sorted(glob.glob(train_idx_pat)),
-                                     batch_size=gpc.config.BATCH_SIZE,
-                                     shard_id=gpc.get_local_rank(ParallelMode.DATA),
-                                     num_shards=gpc.get_world_size(ParallelMode.DATA),
-                                     gpu_aug=gpc.config.dali.gpu_aug,
-                                     cuda=True,
-                                     mixup_alpha=gpc.config.dali.mixup_alpha,
-                                     randaug_num_layers=2)
-
-
-def build_dali_test():
-    root = os.environ['DATA']
-    val_pat = os.path.join(root, 'validation/*')
-    val_idx_pat = os.path.join(root, 'idx_files/validation/*')
-    return DaliDataloaderWithRandAug(sorted(glob.glob(val_pat)),
-                                     sorted(glob.glob(val_idx_pat)),
-                                     batch_size=gpc.config.BATCH_SIZE,
-                                     shard_id=gpc.get_local_rank(ParallelMode.DATA),
-                                     num_shards=gpc.get_world_size(ParallelMode.DATA),
-                                     training=False,
-                                     gpu_aug=False,
-                                     cuda=True,
-                                     mixup_alpha=gpc.config.dali.mixup_alpha)
 
 
 def main():
@@ -67,9 +37,8 @@ def main():
     model = vit_base_patch16_224(drop_rate=0.1)
 
     # build dataloader
-    train_dataloader = build_dali_train()
-    test_dataloader = build_dali_test()
-
+    root = os.environ['DATA']
+    train_dataloader, test_dataloader = build_dali_imagenet(root, rand_augment=True)
     # build optimizer
     optimizer = colossalai.nn.Lamb(model.parameters(), lr=1.8e-2, weight_decay=0.1)
 
