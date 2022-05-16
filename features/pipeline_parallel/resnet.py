@@ -50,7 +50,8 @@ def train():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     # build dataloader
-    train_dataloader, test_dataloader = build_cifar(BATCH_SIZE, padding=4)
+    root = os.environ.get('DATA', './data')
+    train_dataloader, test_dataloader = build_cifar(BATCH_SIZE, root, padding=4, crop=32, resize=32)
 
     lr_scheduler = col_nn.lr_scheduler.LinearWarmupLR(optimizer, NUM_EPOCHS, warmup_steps=1)
     engine, train_dataloader, test_dataloader, lr_scheduler = colossalai.initialize(model, optimizer, criterion,

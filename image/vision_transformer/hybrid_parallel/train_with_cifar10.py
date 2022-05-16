@@ -69,7 +69,8 @@ def main():
     logger.info(f"number of parameters: {total_numel} on pipeline stage {pipeline_stage}")
 
     # craete dataloaders
-    train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE, pad_if_needed=True)
+    root = os.environ.get('DATA', './data')
+    train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE, root, pad_if_needed=True)
 
     # create loss function
     criterion = CrossEntropyLoss(label_smoothing=0.1)

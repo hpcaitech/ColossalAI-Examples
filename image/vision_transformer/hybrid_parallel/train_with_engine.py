@@ -13,43 +13,10 @@ from colossalai.logging import get_dist_logger
 from colossalai.nn import CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.utils import is_using_pp
-from titans.dataloader.imagenet import DaliDataloader
+from titans.dataloader.imagenet import build_dali_imagenet
 from colossalai.utils.model.pipelinable import PipelinableContext
 from titans.model.vit.vit import _create_vit_model
 from tqdm import tqdm
-
-DATASET_PATH = os.environ['DATA']
-
-TRAIN_RECS = DATASET_PATH + '/train/*'
-VAL_RECS = DATASET_PATH + '/validation/*'
-TRAIN_IDX = DATASET_PATH + '/idx_files/train/*'
-VAL_IDX = DATASET_PATH + '/idx_files/validation/*'
-
-
-def build_dali_train(batch_size):
-    return DaliDataloader(
-        sorted(glob.glob(TRAIN_RECS)),
-        sorted(glob.glob(TRAIN_IDX)),
-        batch_size=batch_size,
-        shard_id=gpc.get_local_rank(ParallelMode.DATA),
-        num_shards=gpc.get_world_size(ParallelMode.DATA),
-        training=True,
-        gpu_aug=False,
-        cuda=False,
-    )
-
-
-def build_dali_test(batch_size):
-    return DaliDataloader(
-        sorted(glob.glob(VAL_RECS)),
-        sorted(glob.glob(VAL_IDX)),
-        batch_size=batch_size,
-        shard_id=gpc.get_local_rank(ParallelMode.DATA),
-        num_shards=gpc.get_world_size(ParallelMode.DATA),
-        training=False,
-        gpu_aug=False,
-        cuda=False,
-    )
 
 
 def train_imagenet():
@@ -103,8 +70,8 @@ def train_imagenet():
     logger.info(f"number of parameters: {total_numel} on pipeline stage {pipeline_stage}")
 
     # craete dataloaders
-    train_dataloader = build_dali_train(gpc.config.BATCH_SIZE)
-    test_dataloader = build_dali_test(gpc.config.BATCH_SIZE)
+    root = os.environ['DATA']
+    train_dataloader, test_dataloader = build_dali_imagenet(root, rand_augment=False)
 
     # create loss function
     criterion = CrossEntropyLoss(label_smoothing=0.1)
