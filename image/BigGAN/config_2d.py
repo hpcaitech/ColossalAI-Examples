@@ -6,8 +6,7 @@ CONFIG = dict(
         mode=AMP_TYPE.TORCH
     ),
     parallel=dict(
-        data=1,
         pipeline=1,
-        tensor=dict(size=4, mode='2d'),
+        tensor=dict(size=8, mode='3d'),
     )
 )

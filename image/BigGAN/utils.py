@@ -359,6 +359,10 @@ def prepare_parser():
     '--sv_log_interval', type=int, default=10,
     help='Iteration interval for logging singular values '
          ' (default: %(default)s)') 
+
+  parser.add_argument(
+    '--col_config', type=str, default='config.py',
+    help='Path to Colossal-AI config file (default: %(default)s)')
    
   return parser
 
@@ -693,14 +697,14 @@ def save_weights(G, D, state_dict, weights_root, experiment_name,
     print('Saving weights to %s/%s...' % (root, name_suffix))
   else:
     print('Saving weights to %s...' % root)
-  torch.save(G.state_dict(), 
+  torch.save(G.model.state_dict(), 
               '%s/%s.pth' % (root, join_strings('_', ['G', name_suffix])))
-  torch.save(G.optim.state_dict(), 
-              '%s/%s.pth' % (root, join_strings('_', ['G_optim', name_suffix])))
-  torch.save(D.state_dict(), 
+  # torch.save(G.optim.state_dict(), 
+  #             '%s/%s.pth' % (root, join_strings('_', ['G_optim', name_suffix])))
+  torch.save(D.model.state_dict(), 
               '%s/%s.pth' % (root, join_strings('_', ['D', name_suffix])))
-  torch.save(D.optim.state_dict(),
-              '%s/%s.pth' % (root, join_strings('_', ['D_optim', name_suffix])))
+  # torch.save(D.optim.state_dict(),
+  #             '%s/%s.pth' % (root, join_strings('_', ['D_optim', name_suffix])))
   torch.save(state_dict,
               '%s/%s.pth' % (root, join_strings('_', ['state_dict', name_suffix])))
   if G_ema is not None:

@@ -34,6 +34,7 @@ from pathlib import Path
 from colossalai.logging import get_dist_logger
 from colossalai.core import global_context as gpc
 from colossalai.utils import get_dataloader
+from colossalai.context import ParallelMode
 
 # The main training file. Config is a dictionary specifying the configuration
 # of this training run.
@@ -54,11 +55,13 @@ def run(config):
 
     # Initialize Colossal-AI
     if os.getenv('OMPI_COMM_WORLD_RANK') != None:
-        colossalai.launch_from_openmpi(host='192.168.101.20', port=11452, config='/work/zhangyq/BigGAN-PyTorch/config_2d.py')
+        assert os.getenv('MASTER_ADDR') != None, 'MASTER_ADDR not set'
+        colossalai.launch_from_openmpi(host=os.getenv('MASTER_ADDR'), port=os.getenv('MASTER_PORT'), config=config['col_config'])
     else:
-        colossalai.launch_from_torch('/work/zhangyq/BigGAN-PyTorch/config_2d.py')
+        colossalai.launch_from_torch(config['col_config'])
     logger = get_dist_logger()
-
+    local_rank = gpc.get_local_rank(ParallelMode.GLOBAL)
+    logger.info(f'local_rank: {local_rank}')
     # By default, skip init if resuming training.
     if config['resume']:
         print('Skipping initialization for training resumption...')
@@ -138,19 +141,20 @@ def run(config):
 
     # Prepare loggers for stats; metrics holds test metrics,
     # lmetrics holds any desired training metrics.
-    test_metrics_fname = '%s/%s_log.jsonl' % (config['logs_root'],
-                                              experiment_name)
-    train_metrics_fname = '%s/%s' % (config['logs_root'], experiment_name)
-    print('Inception Metrics will be saved to {}'.format(test_metrics_fname))
-    test_log = utils.MetricsLogger(test_metrics_fname,
-                                   reinitialize=(not config['resume']))
-    print('Training Metrics will be saved to {}'.format(train_metrics_fname))
-    train_log = utils.MyLogger(train_metrics_fname,
-                               reinitialize=(not config['resume']),
-                               logstyle=config['logstyle'])
-    # Write metadata
-    utils.write_metadata(config['logs_root'],
-                         experiment_name, config, state_dict)
+    if local_rank == 0:
+        test_metrics_fname = '%s/%s_log.jsonl' % (config['logs_root'],
+                                                experiment_name)
+        train_metrics_fname = '%s/%s' % (config['logs_root'], experiment_name)
+        print('Inception Metrics will be saved to {}'.format(test_metrics_fname))
+        test_log = utils.MetricsLogger(test_metrics_fname,
+                                    reinitialize=(not config['resume']))
+        print('Training Metrics will be saved to {}'.format(train_metrics_fname))
+        train_log = utils.MyLogger(train_metrics_fname,
+                                reinitialize=(not config['resume']),
+                                logstyle=config['logstyle'])
+        # Write metadata
+        utils.write_metadata(config['logs_root'],
+                            experiment_name, config, state_dict)
     # Prepare data; the Discriminator's batch size is all that needs to be passed
     # to the dataloader, as G doesn't require dataloading.
     # Note that at every loader iteration we pass in enough data to complete
@@ -222,24 +226,30 @@ def run(config):
             state_dict['itr'] += 1
             # Make sure G and D are in training mode, just in case they got set to eval
             # For D, which typically doesn't have BN, this shouldn't matter much.
+
             G.train()
             D.train()
             if config['ema']:
                 G_ema.train()
-            if config['D_fp16']:
-                x, y = x.to(device).half(), y.to(device)
-            else:
-                x, y = x.to(device), y.to(device)
-            metrics = train(x, y)
-            train_log.log(itr=int(state_dict['itr']), **metrics)
+
+            # if config['D_fp16']:
+            #     x, y = x.to(device).half(), y.to(device)
+            # else:
+            x, y = x.to(device), y.to(device)
+            try:
+                metrics = train(x, y)
+            except:
+                pass
+            if local_rank == 0:
+                train_log.log(itr=int(state_dict['itr']), **metrics)
 
             # Every sv_log_interval, log singular values
-            if (config['sv_log_interval'] > 0) and (not (state_dict['itr'] % config['sv_log_interval'])):
+            if local_rank==0 and (config['sv_log_interval'] > 0) and (not (state_dict['itr'] % config['sv_log_interval'])):
                 train_log.log(itr=int(state_dict['itr']),
                               **{**utils.get_SVs(G.model, 'G'), **utils.get_SVs(D.model, 'D')})
 
             # If using my progbar, print metrics.
-            if config['pbar'] == 'mine':
+            if local_rank==0 and config['pbar'] == 'mine':
                 print(', '.join(['itr: %d' % state_dict['itr']]
                                 + ['%s : %+4.3f' % (key, metrics[key])
                                     for key in metrics]), end=' ')
@@ -251,8 +261,9 @@ def run(config):
                     G.eval()
                     if config['ema']:
                         G_ema.eval()
-                train_fns.save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
-                                          state_dict, config, experiment_name)
+                if local_rank==0:
+                    train_fns.save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
+                                            state_dict, config, experiment_name)
 
             # Test every specified interval
             if not (state_dict['itr'] % config['test_every']):
@@ -269,7 +280,6 @@ def main():
     # parse command line and run
     parser = utils.prepare_parser()
     config = vars(parser.parse_args())
-    print(config)
     run(config)
 
 
