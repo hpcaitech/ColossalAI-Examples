@@ -62,7 +62,7 @@ We align with the BERT example in [DeepLearningExamples](https://github.com/NVID
 -- preprocessing
     -- pretrain
         -- phase1
-        -- phase 2
+        -- phase2
     -- wikipedia
         -- extracted
         -- source
