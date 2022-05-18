@@ -6,6 +6,15 @@ This section is made more modular and more friendly for the users to follow.
 We have also refactored the BERT dataset classes in Titans for compatibility with Colossal-AI.
 
 
+## Requirements
+
+Python 3.8 and above is needed for this BERT example. You can use the following command to create a new conda environment.
+
+```shell
+conda create -n bert python=3.8
+conda activate bert
+```
+
 ## Setup
 
 Before we delve into the preprocessing procedure, let's prepare the environment for data processing.
