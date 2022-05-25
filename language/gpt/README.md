@@ -8,7 +8,7 @@ In Colossal-AI, there are many ways to run GPT in a distributed manner. The `tra
 
 We do not host any datasets for GPT or BERT training, however, we provide a detailed guide on how to prepare the dataset so that our results may be reproduced.
 
-### Oveview
+### Overview
 We utilize the publicly available [OpenWebText](https://github.com/eukaryote31/openwebtext) library by [jcpeterson](https://github.com/jcpeterson/openwebtext) and  [eukaryote31's](https://github.com/eukaryote31/openwebtext) work to download urls to different web pages. We then filtered, cleaned, and deduplicated all downloaded content according to the procedure described in following section. 
 
 ### Install necessary packages
@@ -154,7 +154,7 @@ TENSOR_PARALLEL = 2
 
 You can modify it to use more tensor parallel, just with the general rules satisfied.
 In particular, `TENSOR_PARALLEL` should be a square number and cubic number for 2D and 3D, 
-respectively, and `TENSOR_PARALELL / DEPTH` should be a square number for 2.5D.
+respectively, and `TENSOR_PARALLEL / DEPTH` should be a square number for 2.5D.
 
 #### **Pipeline Parallel**
 
@@ -164,7 +164,7 @@ To use pipeline parallel training, you should install colossalai from the **late
 In `gpt2_pp.py`, there are lines:
 
 ```Python
-# BATCH_SIZE / NUM_MICRO_BATCHES should be an interger
+# BATCH_SIZE / NUM_MICRO_BATCHES should be an integer
 NUM_MICRO_BATCHES = 1
 PIPELINE = 2  
 ```

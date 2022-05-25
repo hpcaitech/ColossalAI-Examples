@@ -6,7 +6,7 @@ You may refer to [our documentation on mixed precision training](https://colossa
 
 > ⚠️ This example is only for demo purpose, no guarantee on the convergence performance
 
-# Prerequiste
+# Prerequisite
 
 ```shell
 pip install timm scipy

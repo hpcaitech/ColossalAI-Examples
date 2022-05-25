@@ -19,7 +19,7 @@ export DATA=/path/to/data
 
 ## Verify Gradient Clipping
 
-To verify gradinet clipping, we can just check the change of parameter values.  
+To verify gradient clipping, we can just check the change of parameter values.  
 
 ```bash
 colossalai run --nproc_per_node 1 train.py

@@ -72,7 +72,7 @@ def url_pairs_to_remove(args, bucket_urls, url_doc):
         items = list(bucket_urls)
         remove_urls = []
         main_url = items[np.random.randint(0, len(items))]
-        main_dhingles = shingles(url_doc[main_url])
+        main_shingles = shingles(url_doc[main_url])
 
         for i in range(0, len(items)):
             counter_local += 1
@@ -81,7 +81,7 @@ def url_pairs_to_remove(args, bucket_urls, url_doc):
                 continue
             other_shingles = shingles(url_doc[other_url])
             try:
-                jaccard_sim = jaccard(main_dhingles, other_shingles, args)
+                jaccard_sim = jaccard(main_shingles, other_shingles, args)
             except Exception as e:
                 print('Error:', e)
                 jaccard_sim = 0.0
@@ -150,14 +150,14 @@ def find_pair_urls_parallel(args, lshcache, url_doc):
         counter += counter_local
         write_remove_urls_list(remove_urls_list, f_out)
         print(' [write]> processed {} documents in {:.2f} '
-            'seoncds and deduped {} documents ...'.format(counter, time.time()\
+            'seconds and deduped {} documents ...'.format(counter, time.time()\
             - start_time, deduped), flush=True)
 
     pool.close()
     pool.join()
     f_out.close()
 
-    print(' Taken time for jaccard similariries {:.2f} seconds'.format(\
+    print(' Taken time for jaccard similarities {:.2f} seconds'.format(\
         time.time() - start_time), flush=True)
 
 def find_pair_urls_sequential(args, lshcache, url_doc):
@@ -178,12 +178,12 @@ def find_pair_urls_sequential(args, lshcache, url_doc):
             write_remove_urls_list(remove_urls_list_sub, f_out)
             if counter % 10000 == 0:
                 print(' [write]> processed {} documents in {:.2f} '
-                    'seoncds and deduped {} documents ...'.
+                    'seconds and deduped {} documents ...'.
                     format(counter, time.time() - start_time,
                     deduped), flush=True)
     f_out.close()
     print(' [write]> processed {} documents in {:.2f} '
-        'seoncds and deduped {} documents ...'.
+        'seconds and deduped {} documents ...'.
         format(counter, time.time() - start_time,
         deduped), flush=True)
 

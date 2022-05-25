@@ -6,7 +6,7 @@ from torch.optim import Adam
 BATCH_SIZE = 4
 SEQ_LEN = 1024
 NUM_EPOCHS = 60
-TERSOR_PARALLEL = 8
+TENSOR_PARALLEL = 8
 DEPTH = 2
 
 
@@ -32,5 +32,5 @@ model = dict(
 
 parallel = dict(
     pipeline=1,
-    tensor=dict(size=TERSOR_PARALLEL, depth=DEPTH, mode='2.5d'),
+    tensor=dict(size=TENSOR_PARALLEL, depth=DEPTH, mode='2.5d'),
 )

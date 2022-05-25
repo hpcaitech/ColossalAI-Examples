@@ -4,7 +4,7 @@ Reproduce the DETR model with ColossalAI
 ## Background
 This project is the reproduction of [DETR model](https://arxiv.org/abs/2005.12872) with [ColossalAI](https://github.com/hpcaitech/ColossalAI) tool.
 
-## Envirionment setup
+## Environment setup
 ```
 git clone https://github.com/hpcaitech/ColossalAI.git
 cd ColossalAI

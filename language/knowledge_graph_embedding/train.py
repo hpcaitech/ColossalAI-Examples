@@ -142,12 +142,12 @@ def main(args):
     colossalai.launch_from_torch(config=CONFIG)
 
     if (not args.do_train) and (not args.do_valid) and (not args.do_test):
-        raise ValueError('one of train/val/test mode must be choosed.')
+        raise ValueError('one of train/val/test mode must be chosen.')
 
     if args.init_checkpoint:
         override_config(args)
     elif args.data_path is None:
-        raise ValueError('one of init_checkpoint/data_path must be choosed.')
+        raise ValueError('one of init_checkpoint/data_path must be chosen.')
 
     if args.do_train and args.save_path is None:
         raise ValueError('Where do you want to save your trained model?')
@@ -259,7 +259,7 @@ def main(args):
             warm_up_steps = checkpoint['warm_up_steps']
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     else:
-        logger.info(f"Ramdomly Initializing {args.model} Model...")
+        logger.info(f"Randomly Initializing {args.model} Model...")
         init_step = 0
 
     step = init_step

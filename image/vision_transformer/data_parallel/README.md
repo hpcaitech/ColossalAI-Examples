@@ -48,7 +48,7 @@ As can be seen from the above figure, the ViT model eventually converges well af
 # Details
 `config.py`
 
-This is a [configuration file](https://colossalai.org/config.html) that defines hyperparameters and trainign scheme (fp16, gradient accumulation, etc.). The config content can be accessed through `gpc.config` in the program.
+This is a [configuration file](https://colossalai.org/config.html) that defines hyperparameters and training scheme (fp16, gradient accumulation, etc.). The config content can be accessed through `gpc.config` in the program.
 
 In this example, we trained ViT-Base/16 for 300 epochs on the ImageNet-1K dataset. The batch size is expanded to 32K through data parallelism. Since only 4 A100 GPUs on one small server are used, and the GPU memory is limited, the batch size of 32K cannot be used directly. Therefore, the batch size used on each GPU is only 256, and the 256 batch size is equivalently expanded to 8K through gradient accumulation 32 times. Finally, data parallelism is used between 4 GPUs to achieve an equivalent batch size of 32K.
 

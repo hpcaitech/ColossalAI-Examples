@@ -72,7 +72,7 @@ The `image` and `language` folders are for complex model applications. The `feat
 ## Discussion
 
 Discussion about the Colossal-AI project and examples is always welcomed! We would love to exchange ideas with the community to better help this project grow.
-If you think there is a need to discuss anything, you may jump to our [dicussion forum](https://github.com/hpcaitech/ColossalAI/discussions) and create a topic there.
+If you think there is a need to discuss anything, you may jump to our [discussion forum](https://github.com/hpcaitech/ColossalAI/discussions) and create a topic there.
 
 If you encounter any problem while running these examples, you may want to raise an issue in this repository.
 
@@ -88,9 +88,9 @@ If you find that an example is broken (not working) or not user-friendly, you ma
 
 If you wish to add an example for a specific application, please follow the steps below.
 
-1. create a folder in the `image`, `language` or `features` folders. Generally we do not accept new examples for `features` as one example is often enough. **We encourage contribution with hybrid parallel or models of different domains (e.g. GAN, self-supervised, detection, video understadning, text classification, text generation)**
+1. create a folder in the `image`, `language` or `features` folders. Generally we do not accept new examples for `features` as one example is often enough. **We encourage contribution with hybrid parallel or models of different domains (e.g. GAN, self-supervised, detection, video understanding, text classification, text generation)**
 2. Prepare configuration files and `train.py`
-3. Prepare a detailed readme on envirionment setup, dataset preparation, code execution, etc. in your example folder
+3. Prepare a detailed readme on environment setup, dataset preparation, code execution, etc. in your example folder
 4. Update the table of content (first section above) in this readme file
 
 

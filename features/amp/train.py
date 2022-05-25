@@ -61,7 +61,7 @@ def main():
     # build loss
     criterion = torch.nn.CrossEntropyLoss()
 
-    # lr_scheduelr
+    # lr_scheduler
     lr_scheduler = LinearWarmupLR(optimizer, warmup_steps=1, total_steps=gpc.config.NUM_EPOCHS)
 
     engine, train_dataloader, _, _ = colossalai.initialize(

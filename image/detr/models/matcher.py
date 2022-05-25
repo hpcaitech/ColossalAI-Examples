@@ -65,7 +65,7 @@ class HungarianMatcher(nn.Module):
 
         # Compute the classification cost. Contrary to the loss, we don't use the NLL,
         # but approximate it in 1 - proba[target class].
-        # The 1 is a constant that doesn't change the matching, it can be ommitted.
+        # The 1 is a constant that doesn't change the matching, it can be omitted.
         cost_class = -out_prob[:, tgt_ids]
 
         # Compute the L1 cost between boxes
