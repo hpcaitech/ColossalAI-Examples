@@ -49,6 +49,20 @@ $ DATA=/path/to/dataset torchrun --nproc_per_node=NUM_GPUS_PER_NODE \
                                  --master_port=MASTER_PORT \
                                  train_data.py --config=CONFIG_FILE
 ```
+For the pipeline parallelism, use the following command to run each worker:
+
+```
+$ DATA=/path/to/dataset torchrun --nproc_per_node=NUM_GPUS_PER_NODE \
+                                 --nnodes=NUM_NODES \
+                                 --node_rank=NODE_RANK \
+                                 --master_addr=MASTER_IP_ADDRESS \
+                                 --master_port=MASTER_PORT \
+                                 train_parallel.py
+ ```
+   
+                                
+     
+        
 
 
 
