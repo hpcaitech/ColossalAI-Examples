@@ -93,7 +93,7 @@ The texts are then processed so that they can be fed to dask.
 This could take hours.
 
 ```shell
-download_wikipedia --outdir $PWD
+download_wikipedia --outdir $PWD/wikipedia
 ```
 
 3. Preprocess the data with dask
