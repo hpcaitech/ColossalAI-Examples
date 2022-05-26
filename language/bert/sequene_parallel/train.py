@@ -65,7 +65,7 @@ def main():
     kwargs = dict(vocab_size=VOCAB_SIZE,
                   hidden_size=gpc.config.HIDDEN_SIZE,
                   max_sequence_length=gpc.config.SEQ_LENGTH,
-                  num_attettion_heads=gpc.config.NUM_ATTENTION_HEADS,
+                  num_attention_heads=gpc.config.NUM_ATTENTION_HEADS,
                   convert_fp16_to_fp32_in_softmax=True,
                   is_naive_fp16=is_naive_fp16,
                   add_binary_head=gpc.config.ADD_BINARY_HEAD)

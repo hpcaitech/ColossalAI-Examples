@@ -69,7 +69,7 @@ def train_imagenet():
         pipeline_stage = gpc.get_local_rank(ParallelMode.PIPELINE)
     logger.info(f"number of parameters: {total_numel} on pipeline stage {pipeline_stage}")
 
-    # craete dataloaders
+    # create dataloaders
     root = os.environ['DATA']
     train_dataloader, test_dataloader = build_dali_imagenet(root, rand_augment=False)
 
@@ -84,7 +84,7 @@ def train_imagenet():
                                            total_steps=gpc.config.NUM_EPOCHS,
                                            warmup_steps=gpc.config.WARMUP_EPOCHS)
 
-    # intiailize
+    # initialize
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model=model,
                                                                          optimizer=optimizer,
                                                                          criterion=criterion,

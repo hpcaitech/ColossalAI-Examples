@@ -195,7 +195,7 @@ class VocabParallelEmbedding1D(torch.nn.Module):
         # Keep the input dimensions.
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
-        # Set the detauls for compatibility.
+        # Set the details for compatibility.
         self.padding_idx = None
         self.max_norm = None
         self.norm_type = 2.
@@ -203,7 +203,7 @@ class VocabParallelEmbedding1D(torch.nn.Module):
         self.sparse = False
         self._weight = None
         self.tensor_model_parallel_size = gpc.tensor_parallel_size
-        # Divide the weight matrix along the vocaburaly dimension.
+        # Divide the weight matrix along the vocabulary dimension.
         self.vocab_start_index, self.vocab_end_index = \
             VocabUtility.vocab_range_from_global_vocab_size(
                 self.num_embeddings, gpc.get_local_rank(ParallelMode.PARALLEL_1D),
@@ -266,7 +266,7 @@ class _VocabParallelCrossEntropy(torch.autograd.Function):
         # Subtract the maximum value.
         vocab_parallel_logits.sub_(logits_max.unsqueeze(dim=-1))
 
-        # Get the partition's vocab indecies
+        # Get the partition's vocab indices
         get_vocab_range = VocabUtility.vocab_range_from_per_partition_vocab_size
         partition_vocab_size = vocab_parallel_logits.size()[-1]
         rank = gpc.get_local_rank(ParallelMode.PARALLEL_1D)
@@ -317,7 +317,7 @@ class _VocabParallelCrossEntropy(torch.autograd.Function):
         # Retreive tensors from the forward path.
         softmax, target_mask, masked_target_1d = ctx.saved_tensors
 
-        # All the inputs have softmax as thier gradient.
+        # All the inputs have softmax as their gradient.
         grad_input = softmax
         # For simplicity, work with the 2D gradient.
         partition_vocab_size = softmax.size()[-1]
@@ -338,7 +338,7 @@ class _VocabParallelCrossEntropy(torch.autograd.Function):
 class VocabUtility:
     """Split the vocabulary into `world_size` chunks amd return the
         first and last index of the vocabulary belonging to the `rank`
-        partition: Note that indecies in [fist, last)"""
+        partition: Note that indices in [fist, last)"""
 
     @staticmethod
     def vocab_range_from_per_partition_vocab_size(per_partition_vocab_size,
@@ -562,7 +562,7 @@ class HiddenParallelEmbedding1D(torch.nn.Module):
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
         embed_dim_per_partition = divide(embedding_dim, gpc.tensor_parallel_size)
-        # Set the detauls for compatibility.
+        # Set the details for compatibility.
         self.padding_idx = padding_idx
         self.max_norm = None
         self.norm_type = 2.

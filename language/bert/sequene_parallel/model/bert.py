@@ -18,7 +18,7 @@ class BertForPretrain(nn.Module):
                  vocab_size,
                  hidden_size,
                  max_sequence_length,
-                 num_attettion_heads,
+                 num_attention_heads,
                  num_layers,
                  add_binary_head,
                  is_naive_fp16,
@@ -49,7 +49,7 @@ class BertForPretrain(nn.Module):
         for i in range(num_layers):
             bert_layer = BertLayer(layer_number=i+1,
                                    hidden_size=hidden_size,
-                                   num_attention_heads=num_attettion_heads,
+                                   num_attention_heads=num_attention_heads,
                                    attention_dropout=dropout_prob,
                                    mlp_ratio=mlp_ratio,
                                    hidden_dropout=dropout_prob,
@@ -76,7 +76,7 @@ class BertForPretrain(nn.Module):
         if self.embedding.tokentype_embeddings:
             self._init_normal(self.embedding.tokentype_embeddings.weight)
 
-        # intiailize bert layer
+        # initialize bert layer
         for layer in self.bert_layers:
             # initialize self attention
             self._init_normal(layer.self_attention.query_key_value.weight)
@@ -84,7 +84,7 @@ class BertForPretrain(nn.Module):
             self._init_normal(layer.mlp.dense_h_to_4h.weight)
             self._output_init_normal(layer.mlp.dense_4h_to_h.weight)
 
-        # intializer head
+        # initializer head
         self._init_normal(self.head.lm_head.dense.weight)
         if self.head.binary_head is not None:
             self._init_normal(self.head.binary_head.pooler.dense.weight)
@@ -123,7 +123,7 @@ class PipelineBertForPretrain(nn.Module):
                  vocab_size,
                  hidden_size,
                  max_sequence_length,
-                 num_attettion_heads,
+                 num_attention_heads,
                  num_layers,
                  add_binary_head,
                  is_naive_fp16,
@@ -168,7 +168,7 @@ class PipelineBertForPretrain(nn.Module):
         for i in range(start_idx, end_idx):
             bert_layer = BertLayer(layer_number=i+1,
                                    hidden_size=hidden_size,
-                                   num_attention_heads=num_attettion_heads,
+                                   num_attention_heads=num_attention_heads,
                                    attention_dropout=dropout_prob,
                                    mlp_ratio=mlp_ratio,
                                    hidden_dropout=dropout_prob,
@@ -198,7 +198,7 @@ class PipelineBertForPretrain(nn.Module):
             if self.embedding.tokentype_embeddings:
                 self._init_normal(self.embedding.tokentype_embeddings.weight)
 
-        # intiailize bert layer
+        # initialize bert layer
         for layer in self.bert_layers:
             # initialize self attention
             self._init_normal(layer.self_attention.query_key_value.weight)
@@ -206,7 +206,7 @@ class PipelineBertForPretrain(nn.Module):
             self._init_normal(layer.mlp.dense_h_to_4h.weight)
             self._output_init_normal(layer.mlp.dense_4h_to_h.weight)
 
-        # intializer head
+        # initializer head
         if self.last_stage:
             self._init_normal(self.head.lm_head.dense.weight)
             if self.head.binary_head is not None:

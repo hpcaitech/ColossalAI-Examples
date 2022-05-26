@@ -124,7 +124,7 @@ make
 
 In the `config.py` provided, a set of parameters are defined including training scheme, model, etc.
 You can also modify the ColossalAI setting. For example, if you wish to parallelize over the 
-sequence diemsnion on 8 GPUs. You can change `size=4` to `size=8`. If you wish to use pipeline parallelism, you can set `pipeline=<num_of_pipeline_stages>`.
+sequence dimension on 8 GPUs. You can change `size=4` to `size=8`. If you wish to use pipeline parallelism, you can set `pipeline=<num_of_pipeline_stages>`.
 
 ### Step 4. Invoke parallel training
 

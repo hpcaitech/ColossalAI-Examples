@@ -45,7 +45,7 @@ def main():
     # build loss
     criterion = MixupLoss(loss_fn_cls=torch.nn.CrossEntropyLoss)
 
-    # lr_scheduelr
+    # lr_scheduler
     lr_scheduler = LinearWarmupLR(optimizer, warmup_steps=1, total_steps=gpc.config.NUM_EPOCHS)
 
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model, optimizer, criterion, train_dataloader,

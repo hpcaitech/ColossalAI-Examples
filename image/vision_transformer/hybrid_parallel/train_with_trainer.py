@@ -79,7 +79,7 @@ def train_imagenet():
                                            total_steps=gpc.config.NUM_EPOCHS,
                                            warmup_steps=gpc.config.WARMUP_EPOCHS)
 
-    # intiailize
+    # initialize
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model=model,
                                                                          optimizer=optimizer,
                                                                          criterion=criterion,

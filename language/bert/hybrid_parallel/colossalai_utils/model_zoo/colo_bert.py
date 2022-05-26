@@ -1,5 +1,5 @@
 """
-Adapted from huggingface modeling_bert.py. Change the necessary part to use Colossolai.
+Adapted from huggingface modeling_bert.py. Change the necessary part to use Colossalai.
 """
 import torch
 import math
@@ -644,7 +644,7 @@ class BertModel(BertPreTrainedModel):
         else:
             encoder_extended_attention_mask = None
 
-        ###print("BertModel:emeddings:", embedding_output.shape)
+        ###print("BertModel:embeddings:", embedding_output.shape)
         encoder_outputs = self.encoder(
             embedding_output,
             attention_mask=extended_attention_mask,

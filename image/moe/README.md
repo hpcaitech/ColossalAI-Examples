@@ -7,12 +7,12 @@ It is designed to improve the performance of our models without any additional t
 version moe parallelism will cause a moderate computation overhead and additional memory usage. But
 we are happy to announce that recently enabled CUDA kernels have solved the problem above. There 
 are only two things that you need to concern. One is the additional communication time which highly
-depends on the topology and bandwith of the network in running environment. Another is extra memory usgae,
+depends on the topology and bandwidth of the network in running environment. Another is extra memory usage,
 since we have a larger model thanks to MoE. We will continuously maintain and optimize our MoE system
 and be encouraged by any issue that can help us improve our system.
 
 At present, we have provided Widenet and ViT-MoE in our model zoo (more information about Widenet can be 
-found [here](https://arxiv.org/abs/2107.11817)). We now support a recent tecnique proposed by Microsoft, PR-MoE.
+found [here](https://arxiv.org/abs/2107.11817)). We now support a recent technique proposed by Microsoft, PR-MoE.
 You can access [here](https://arxiv.org/abs/2201.05596) to know more about PR-MoE.
 Directly use ViT-MoE in our model zoo or use MoeModule in your model to exploit PR-MoE.
 

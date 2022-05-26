@@ -144,7 +144,7 @@ def build_data():
                                        interp_type=types.INTERP_TRIANGULAR)
                     flip_lr = False
 
-                # center crop and normalise
+                # center crop and normalize
                 images = fn.crop_mirror_normalize(images,
                                                   dtype=types.FLOAT,
                                                   crop=(crop, crop),

@@ -7,7 +7,7 @@ import json
 
 
 def cost_matrix_cosine(x, y, eps=1e-5):
-    """Compute cosine distnace across every pairs of x, y (batched)
+    """Compute cosine distance across every pairs of x, y (batched)
     [B, L_x, D] [B, L_y, D] -> [B, Lx, Ly]"""
     assert x.dim() == y.dim()
     assert x.size(0) == y.size(0)

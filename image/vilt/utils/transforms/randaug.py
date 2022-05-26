@@ -1,4 +1,4 @@
-# code in this file is adpated from rpmcruz/autoaugment
+# code in this file is adapted from rpmcruz/autoaugment
 # https://github.com/rpmcruz/autoaugment/blob/master/transformations.py
 import random
 
@@ -158,7 +158,7 @@ def Identity(img, v):
     return img
 
 
-def augment_list():  # 16 oeprations and their ranges
+def augment_list():  # 16 operations and their ranges
     # https://github.com/google-research/uda/blob/master/image/randaugment/policies.py#L57
     # l = [
     #     (Identity, 0., 1.0),
