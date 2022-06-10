@@ -5,7 +5,7 @@
 To use tensor parallelism, there are several steps to follow:
 
 1. define `parallel` in your configuration file. Set `mode` for `tensor` to `1d`, `2d`, `2.5d` or `3d`.
-2. cosntruct your model, replace `torch.nn.Linear` with `colossalai.nn.Linear`.
+2. construct your model, replace `torch.nn.Linear` with `colossalai.nn.Linear`.
 3. split the input data accordingly
 
 ## Reference

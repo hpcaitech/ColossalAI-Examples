@@ -10,7 +10,7 @@ from colossalai.nn.metric import Accuracy
 from torchvision import transforms
 from colossalai.nn.lr_scheduler import CosineAnnealingLR
 from torchvision.datasets import CIFAR10
-from torchvision.models import resnet34
+from resnet import ResNet18
 from tqdm import tqdm
 from titans.utils import barrier_context
 
@@ -27,7 +27,7 @@ def main():
     logger = get_dist_logger()
 
     # build resnet
-    model = resnet34(num_classes=10)
+    model = ResNet18()
 
     with barrier_context():
         # build dataloaders

@@ -28,7 +28,7 @@ def build_train_valid_test_data_iterators(train_iters,
     # Backward compatibility, assume fixed batch size.
     # if iteration > 0 and consumed_train_samples == 0:
     #     assert train_samples is None, \
-    #         'only backward compatiblity support for iteration-based training'
+    #         'only backward compatibility support for iteration-based training'
     #     consumed_train_samples = iteration * global_batch_size
     # if iteration > 0 and consumed_valid_samples == 0:
     #     if train_samples is None:
@@ -54,7 +54,7 @@ def build_train_valid_test_data_iterators(train_iters,
         train_ds, valid_ds, test_ds = build_train_valid_test_datasets(
             train_valid_test_num_samples=train_val_test_num_samples, **kwargs)
 
-        # Build dataloders.
+        # Build dataloaders.
         dp_size = gpc.get_world_size(ParallelMode.DATA)
         train_dataloader = build_pretraining_data_loader(
             train_ds, consumed_samples=0, micro_batch_size=global_batch_size//dp_size)

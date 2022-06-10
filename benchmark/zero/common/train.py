@@ -15,7 +15,7 @@ def _train(epoch, rank, world_size, train_dataloader, model, criterion, optimize
     use_autocast = CONFIG['method'] in ['torch', 'colossalai'] and \
         'fp16' in CONFIG and CONFIG['fp16'].get('enabled', True)
     clip_grad_norm = CONFIG.get('gradient_clipping', 0.)
-    use_integraded_clip_grad = CONFIG['method'] in ['fairscale']
+    use_integrated_clip_grad = CONFIG['method'] in ['fairscale']
     use_colossalai_zero_v1 = CONFIG['method'] == 'colossalai' and CONFIG.get('sharded_model_version', 2) == 1
 
     model.train()
@@ -103,7 +103,7 @@ def _train(epoch, rank, world_size, train_dataloader, model, criterion, optimize
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             if clip_grad_norm > 0:
-                if use_integraded_clip_grad:    # fairscale style
+                if use_integrated_clip_grad:    # fairscale style
                     model.clip_grad_norm_(clip_grad_norm)
                 else:    # torch style
                     torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad_norm)
@@ -114,7 +114,7 @@ def _train(epoch, rank, world_size, train_dataloader, model, criterion, optimize
         else:    # torch & fairscale normal style
             loss.backward()
             if clip_grad_norm > 0:
-                if use_integraded_clip_grad:    # fairscale style
+                if use_integrated_clip_grad:    # fairscale style
                     model.clip_grad_norm_(clip_grad_norm)
                 else:    # torch style
                     torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad_norm)

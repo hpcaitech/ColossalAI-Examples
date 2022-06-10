@@ -64,7 +64,7 @@ def main():
     optimizer = colossalai.nn.FusedSGD(model.parameters(), lr=gpc.config.LEARNING_RATE,
                                        weight_decay=gpc.config.WEIGHT_DECAY, momentum=gpc.config.MOMENTUM)
 
-    # lr_scheduelr
+    # lr_scheduler
     lr_scheduler = CosineAnnealingWarmupLR(optimizer, warmup_steps=10, total_steps=gpc.config.NUM_EPOCHS)
 
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(

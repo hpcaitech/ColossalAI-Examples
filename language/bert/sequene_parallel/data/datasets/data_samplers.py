@@ -21,7 +21,7 @@ from colossalai.context import ParallelMode
 
 
 def build_pretraining_data_loader(dataset, consumed_samples, micro_batch_size, dataloader_type='single', num_workers=0):
-    """Buld dataloader given an input dataset."""
+    """Build dataloader given an input dataset."""
 
     if dataset is None:
         return None

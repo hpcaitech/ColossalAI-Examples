@@ -73,7 +73,7 @@ class BertDataset(Dataset):
         sample = [self.indexed_dataset[i] for i in range(start_idx, end_idx)]
         # Note that this rng state should be numpy and not python since
         # python randint is inclusive whereas the numpy one is exclusive.
-        # We % 2**32 since numpy requres the seed to be between 0 and 2**32 - 1
+        # We % 2**32 since numpy requires the seed to be between 0 and 2**32 - 1
         np_rng = np.random.RandomState(seed=((self.seed + idx) % 2**32))
         return build_training_sample(
             sample,
@@ -126,16 +126,16 @@ def get_samples_mapping_(indexed_dataset, data_prefix, num_epochs, max_num_sampl
         # Build samples mapping
         verbose = torch.distributed.get_rank() == 0
         start_time = time.time()
-        logger.info('\n > building sapmles index mapping for {} ...'.format(name), ranks=[0])
+        logger.info('\n > building samples index mapping for {} ...'.format(name), ranks=[0])
         # First compile and then import.
         samples_mapping = helpers.build_mapping(indexed_dataset.doc_idx, indexed_dataset.sizes, num_epochs,
                                                 max_num_samples, max_seq_length, short_seq_prob, seed, verbose,
                                                 2 if binary_head else 1)
-        logger.info('\n > done building sapmles index maping', ranks=[0])
+        logger.info('\n > done building samples index maping', ranks=[0])
         np.save(indexmap_filename, samples_mapping, allow_pickle=True)
         logger.info('\n > saved the index mapping in {}'.format(indexmap_filename), ranks=[0])
         # Make sure all the ranks have built the mapping
-        logger.info('\n > elasped time to build and save samples mapping '
+        logger.info('\n > elapsed time to build and save samples mapping '
                     '(seconds): {:4f}'.format(time.time() - start_time),
                     ranks=[0])
     # This should be a barrier but nccl barrier assumes
@@ -161,7 +161,7 @@ def get_samples_mapping_(indexed_dataset, data_prefix, num_epochs, max_num_sampl
 
 def build_training_sample(sample, target_seq_length, max_seq_length, vocab_id_list, vocab_id_to_token_dict, cls_id,
                           sep_id, mask_id, pad_id, masked_lm_prob, np_rng, binary_head):
-    """Biuld training sample.
+    """Build training sample.
 
     Arguments:
         sample: A list of sentences in which each sentence is a list token ids.
