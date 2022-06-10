@@ -36,7 +36,7 @@ def train_imagenet():
     # create model
     model_kwargs = dict(img_size=gpc.config.IMG_SIZE,
                         patch_size=gpc.config.PATCH_SIZE,
-                        dim=gpc.config.HIDDEN_SIZE,
+                        hidden_size=gpc.config.HIDDEN_SIZE,
                         depth=gpc.config.DEPTH,
                         num_heads=gpc.config.NUM_HEADS,
                         mlp_ratio=gpc.config.MLP_RATIO,
