@@ -9,7 +9,7 @@ import colossalai.utils as utils
 from colossalai.trainer import hooks, Trainer
 from colossalai import nn as col_nn
 from colossalai.nn import LinearWarmupLR
-from colossalai.utils.model.pipelinable import PipelinableContext
+from colossalai.pipeline.pipelinable import PipelinableContext
 import torch.nn as nn
 from dataset.webtext import WebtextDataset
 import contextlib
