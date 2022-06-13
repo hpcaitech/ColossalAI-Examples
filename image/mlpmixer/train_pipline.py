@@ -180,7 +180,7 @@ def train():
         with pipelinable:
             model = mixer_s32(num_classes, image_size, patch_size)
         pipelinable.to_layer_list()
-        pipelinable.policy("uniform")
+        pipelinable.policy = "uniform"
         model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
     else:
         model = mixer_s32(num_classes, image_size, patch_size)

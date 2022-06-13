@@ -49,7 +49,7 @@ def train_imagenet():
         with pipelinable:
             model = _create_vit_model(**model_kwargs)
         pipelinable.to_layer_list()
-        pipelinable.policy("uniform")
+        pipelinable.policy = "uniform"
         model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
     else:
         model = _create_vit_model(**model_kwargs)
