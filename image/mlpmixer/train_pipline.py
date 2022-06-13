@@ -10,8 +10,7 @@ import colossalai.nn as col_nn
 import torch
 import torch.nn as nn
 from colossalai.builder import build_pipeline_model
-from colossalai.engine.schedule import (InterleavedPipelineSchedule,
-                                        PipelineSchedule)
+from colossalai.engine.schedule import (InterleavedPipelineSchedule, PipelineSchedule)
 from colossalai.logging import disable_existing_loggers, get_dist_logger
 from colossalai.trainer import Trainer, hooks
 from colossalai.utils import MultiTimer, get_dataloader
@@ -27,24 +26,21 @@ from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.trainer import Trainer, hooks
 from colossalai.utils import MultiTimer, is_using_pp
 
-from colossalai.utils.model.pipelinable import PipelinableContext
-
+from colossalai.pipeline.pipelinable import PipelinableContext
 
 
 class MlpBlock(nn.Module):
+
     def __init__(self, hidden_dim, mlp_dim):
         super(MlpBlock, self).__init__()
-        self.mlp = nn.Sequential(
-            nn.Linear(hidden_dim, mlp_dim),
-            nn.GELU(),
-            nn.Linear(mlp_dim, hidden_dim)
-        )
+        self.mlp = nn.Sequential(nn.Linear(hidden_dim, mlp_dim), nn.GELU(), nn.Linear(mlp_dim, hidden_dim))
 
     def forward(self, x):
         return self.mlp(x)
 
 
 class MixerBlock(nn.Module):
+
     def __init__(self, num_tokens, hidden_dim, tokens_mlp_dim, channels_mlp_dim):
         super(MixerBlock, self).__init__()
         self.ln_token = nn.LayerNorm(hidden_dim)
@@ -84,21 +80,25 @@ class MixerBlock(nn.Module):
 
 
 class data_flatten(nn.Module):
+
     def __init__(self):
         super().__init__()
 
     def forward(self, x):
         return x.flatten(2).transpose(1, 2)
 
+
 class data_mean(nn.Module):
+
     def __init__(self):
         super().__init__()
 
     def forward(self, x):
         return x.mean(dim=1)
 
+
 def MlpMixer(num_classes, num_blocks, patch_size, hidden_dim, tokens_mlp_dim, channels_mlp_dim, image_size=224):
-    num_tokens = (image_size // patch_size) ** 2
+    num_tokens = (image_size // patch_size)**2
     patch_emb = nn.Conv2d(3, hidden_dim, kernel_size=patch_size, stride=patch_size, bias=False)
 
     mlp = nn.Sequential(
@@ -106,7 +106,8 @@ def MlpMixer(num_classes, num_blocks, patch_size, hidden_dim, tokens_mlp_dim, ch
     ln = nn.LayerNorm(hidden_dim)
     fc = nn.Linear(hidden_dim, num_classes)
 
-    return nn.Sequential(patch_emb,data_flatten(),mlp,ln, data_mean(), fc)
+    return nn.Sequential(patch_emb, data_flatten(), mlp, ln, data_mean(), fc)
+
 
 # def data_flatten(x):
 #     return x.flatten(2).transpose(1, 2)
@@ -114,11 +115,11 @@ def MlpMixer(num_classes, num_blocks, patch_size, hidden_dim, tokens_mlp_dim, ch
 # def data_mean(x):
 #     return x.mean(dim=1)
 
-
 # def mixer_s32(num_classes=10, image_size=32, patch_size=4,**kwargs):
 #     return MlpMixer(num_classes, 8, patch_size, 512, 256, 2048, image_size)
 
-def mixer_s32(num_classes=1000, image_size=224, patch_size=32,**kwargs):
+
+def mixer_s32(num_classes=1000, image_size=224, patch_size=32, **kwargs):
     return MlpMixer(num_classes, 8, patch_size, 512, 256, 2048, image_size, **kwargs)
 
 
@@ -153,7 +154,6 @@ image_size = 32
 patch_size = 4
 
 
-
 def train():
     # initialize distributed setting
     parser = colossalai.get_default_parser()
@@ -185,13 +185,12 @@ def train():
     if use_pipeline:
         pipelinable = PipelinableContext()
         with pipelinable:
-            model = mixer_s32(num_classes,image_size,patch_size)
+            model = mixer_s32(num_classes, image_size, patch_size)
         pipelinable.to_layer_list()
         pipelinable.load_policy("uniform")
         model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
     else:
-        model = mixer_s32(num_classes,image_size,patch_size)
-
+        model = mixer_s32(num_classes, image_size, patch_size)
 
     # count number of parameters
     total_numel = 0
@@ -204,7 +203,7 @@ def train():
     logger.info(f"number of parameters: {total_numel} on pipeline stage {pipeline_stage}")
 
     # craete dataloaders
- 
+
     train_dataloader, test_dataloader = build_cifar(BATCH_SIZE)
 
     # create loss function

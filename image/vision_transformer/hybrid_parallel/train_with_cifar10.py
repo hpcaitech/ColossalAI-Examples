@@ -9,7 +9,7 @@ from colossalai.logging import get_dist_logger
 from colossalai.nn import CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.utils import is_using_pp, get_dataloader
-from colossalai.utils.model.pipelinable import PipelinableContext
+from colossalai.pipeline.pipelinable import PipelinableContext
 from titans.model.vit.vit import _create_vit_model
 from tqdm import tqdm
 
@@ -92,9 +92,6 @@ def main():
 
     logger.info("Engine is built", ranks=[0])
 
-    # create schedule
-    schedule = None
-    tensor_shape = getattr(gpc.config, 'TENSOR_SHAPE', None)
     if gpc.is_initialized(ParallelMode.PARALLEL_1D):
         scatter_gather = True
     else:

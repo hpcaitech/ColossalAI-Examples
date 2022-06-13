@@ -14,7 +14,7 @@ from colossalai.nn import CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.utils import is_using_pp
 from titans.dataloader.imagenet import build_dali_imagenet
-from colossalai.utils.model.pipelinable import PipelinableContext
+from colossalai.pipeline.pipelinable import PipelinableContext
 from titans.model.vit.vit import _create_vit_model
 from tqdm import tqdm
 
