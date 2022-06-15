@@ -18,7 +18,15 @@ from datasets import build_dataset, get_coco_api_from_dataset
 import util.misc as utils
 from torch.utils.data import DataLoader
 from datasets.coco_eval import CocoEvaluator
+from models.detr import DETR
+
+from models.backbone import build_backbone
+from models.matcher import build_matcher
+from models.transformer import build_transformer
+from models.detr import SetCriterion, PostProcess
+
 DATASET_PATH = str(os.environ['DATA'])  # The directory of your dataset
+
 
 
 def train_detr():
@@ -40,17 +48,42 @@ def train_detr():
     
     args_mo = gpc.config
     
+    num_classes = 557 if args_mo.dataset_file != 'coco' else 91
+    device = torch.device(args_mo.device)
+    backbone = build_backbone(args_mo)
+    transformer = build_transformer(args_mo)
+    matcher = build_matcher(args_mo)
+    weight_dict = {'loss_ce': 1, 'loss_bbox': args_mo.bbox_loss_coef}
+    weight_dict['loss_giou'] = args_mo.giou_loss_coef
+    if args_mo.masks:
+        weight_dict["loss_mask"] = args_mo.mask_loss_coef
+        weight_dict["loss_dice"] = args_mo.dice_loss_coef
+    # TODO this is a hack
+    if args_mo.aux_loss:
+        aux_weight_dict = {}
+        for i in range(args_mo.dec_layers - 1):
+            aux_weight_dict.update({k + f'_{i}': v for k, v in weight_dict.items()})
+        weight_dict.update(aux_weight_dict)
+
+    losses = ['labels', 'boxes', 'cardinality']
+    if args_mo.masks:
+        losses += ["masks"]
+    criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict, eos_coef=args_mo.eos_coef, losses=losses)
+    criterion.to(device)
+    postprocessors = {'bbox': PostProcess()}
+
     if use_pipeline:
         pipelinable = PipelinableContext()
         with pipelinable:
-            model, criterion, postprocessors = build_model(args=args_mo)
+            model = build_model(backbone=backbone, transformer=transformer, num_classes=num_classes)
         pipelinable.to_layer_list()
         pipelinable.load_policy("uniform")
         model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
+
         print(model)
     
     else:
-        model, criterion, postprocessors = build_model(args=args_mo)
+        model = build_model(args=args_mo, backbone=backbone, transformer=transformer, num_classes=num_classes)
     
     
     model.to(device)
