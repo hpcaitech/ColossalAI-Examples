@@ -5,13 +5,15 @@ import torch
 import torch.nn as nn
 from colossalai.logging import disable_existing_loggers, get_dist_logger
 from colossalai.nn.optimizer import HybridAdam
-from colossalai.zero.init_ctx import ZeroInitContext
-from colossalai.zero.shard_utils import TensorShardStrategy
-from colossalai.zero.sharded_model import ShardedModelV2
-from colossalai.zero.sharded_optim import ShardedOptimizerV2
 from transformers import GPT2Config, GPT2LMHeadModel
 from time import time
 from functools import partial
+from colossalai.tensor.chunk import ChunkManager
+from colossalai.gemini.gemini_mgr import GeminiManager
+from colossalai.utils.model.colo_init_context import ColoInitContext
+from colossalai.utils import get_current_device
+from colossalai.nn.parallel import ColoDDPV2
+from colossalai.zero import ZeroOptimizer
 
 
 class GPTLMModel(nn.Module):
@@ -85,22 +87,26 @@ def main():
 
     logger.info(get_mem_info(), ranks=[0])
     # build GPT model
-    shard_strategy = TensorShardStrategy()
-    with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True) as ctx:
+    with ColoInitContext(device=get_current_device()):
         model = gpt2_medium(checkpoint=True)
-    numel = ctx.model_numel_tensor.item()
+    numel = sum([p.numel() for p in model.parameters()])
     logger.info(f'Model numel: {numel}')
     get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
-    # Set tensor_placement_policy='cpu', which will offload params, grads and os
-    model = ShardedModelV2(model, shard_strategy, tensor_placement_policy='cpu', reuse_fp16_shard=True)
+
+    chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
+    chunk_manager = ChunkManager(chunk_size, enable_distributed_storage=True,
+                                 init_device=GeminiManager.get_default_device('cpu'))
+    gemini_manager = GeminiManager('cpu', chunk_manager)
+    model = ColoDDPV2(model, gemini_manager)
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
+    logger.info(chunk_manager)
 
     # build criterion
     criterion = GPTLMLoss()
 
     # optimizer
     optimizer = HybridAdam(model.parameters(), lr=1e-3)
-    optimizer = ShardedOptimizerV2(model, optimizer, initial_scale=2**5)
+    optimizer = ZeroOptimizer(optimizer, model, initial_scale=2**5)
     logger.info(get_mem_info(prefix='After init optim, '), ranks=[0])
 
     model.train()
