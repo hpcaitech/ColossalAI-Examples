@@ -89,7 +89,7 @@ def main():
     with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True) as ctx:
         model = gpt2_medium(checkpoint=True)
     numel = ctx.model_numel_tensor.item()
-    logger.info(f'Model numel: {numel}')
+    logger.info(f'Model numel: {numel}', ranks=[0])
     get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
     # Set tensor_placement_policy='cpu', which will offload params, grads and os
     model = ShardedModelV2(model, shard_strategy, tensor_placement_policy='cpu', reuse_fp16_shard=True)

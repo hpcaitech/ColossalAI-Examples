@@ -90,16 +90,15 @@ def main():
     with ColoInitContext(device=get_current_device()):
         model = gpt2_medium(checkpoint=True)
     numel = sum([p.numel() for p in model.parameters()])
-    logger.info(f'Model numel: {numel}')
+    logger.info(f'Model numel: {numel}', ranks=[0])
     get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
-
     chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
     chunk_manager = ChunkManager(chunk_size, enable_distributed_storage=True,
                                  init_device=GeminiManager.get_default_device('cpu'))
     gemini_manager = GeminiManager('cpu', chunk_manager)
     model = ColoDDPV2(model, gemini_manager)
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
-    logger.info(chunk_manager)
+    logger.info(chunk_manager, ranks=[0])
 
     # build criterion
     criterion = GPTLMLoss()
