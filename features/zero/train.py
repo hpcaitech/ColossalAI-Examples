@@ -117,7 +117,8 @@ def main():
         optimizer.step()
         logger.info(get_mem_info(prefix=f'[{n+1}/{NUM_STEPS}] Optimizer step '), ranks=[0])
         step_time = time() - start
-        logger.info(f'[{n+1}/{NUM_STEPS}] Step time: {step_time:.3f}s, TFLOPS: {get_tflops_func(step_time):.3f}', ranks=[0])
+        logger.info(
+            f'[{n+1}/{NUM_STEPS}] Loss:{loss.item():.3f}, Step time: {step_time:.3f}s, TFLOPS: {get_tflops_func(step_time):.3f}', ranks=[0])
 
 
 if __name__ == '__main__':
