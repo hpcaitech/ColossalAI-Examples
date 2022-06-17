@@ -9,9 +9,11 @@ from colossalai.core import global_context as gpc
 from colossalai.logging import disable_existing_loggers, get_dist_logger
 from colossalai.nn import LinearWarmupLR
 from colossalai.trainer import Trainer, hooks
-from colossalai.utils import colo_set_process_memory_fraction
-from colossalai.utils.timer import MultiTimer
+from colossalai.utils import colo_set_process_memory_fraction, get_current_device, MultiTimer
+from colossalai.utils.model.colo_init_context import ColoInitContext
 from colossalai.nn._ops import *
+from colossalai.nn.parallel.layers import init_colo_module
+from colossalai.tensor import TensorSpec, ComputePattern, ParallelAction
 
 from language.bert.colotensor.dataset import build_data
 from language.bert.colotensor.model import build_model
@@ -47,7 +49,11 @@ def main():
     if use_zero:
         raise NotImplemented
     else:
-        model = build_model()
+        with ColoInitContext(device=get_current_device()):
+            model = build_model()
+        
+        parallel_action = ParallelAction(ComputePattern.TP1D)
+        init_colo_module(model, parallel_action, recursive=True, mode='col')
 
     if use_zero:
         raise NotImplemented
