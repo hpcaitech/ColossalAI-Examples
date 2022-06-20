@@ -8,15 +8,13 @@ import numpy as np
 from data import get_train_features, gen_tensor_dataset, convert_examples_to_features
 from metrics import compute_metrics
 from tqdm import trange, tqdm
+from colossalai.core import global_context as gpc
 
 from torch.utils.data import SequentialSampler, DataLoader
 from colossalai.nn.optimizer import FusedAdam
 from colossalai.nn.lr_scheduler import LinearWarmupLR
-from colossalai.core import global_context as gpc
 from colossalai.utils import get_dataloader
-from torch.utils.tensorboard import SummaryWriter
 from transformers import BertForSequenceClassification
-from colossalai.zero.sharded_model import ShardedModelV2
 
 __all__ = [
     'get_model', 'get_optimizer', 'get_lr_scheduler', 'get_train_dataloader', 'run_train', 'get_eval_dataloader',
@@ -24,11 +22,14 @@ __all__ = [
 ]
 
 
-def get_model(config_file, num_labels):
+def get_model(config_file, num_labels, use_hf_pretrain=False):
     config = transformers.BertConfig.from_json_file(config_file)
     config.num_labels = num_labels
-    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', config=config)
-    # model = transformers.BertForSequenceClassification(config=config)
+
+    if use_hf_pretrain:
+        model = BertForSequenceClassification.from_pretrained('bert-base-uncased', config=config)
+    else:
+        model = transformers.BertForSequenceClassification(config=config)
     return model
 
 
@@ -91,8 +92,6 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
     num_train_examples = 0
     engine.train()
 
-    writer = SummaryWriter()
-
     for _ in trange(int(args.num_train_epochs), desc="Epoch"):
         train_loss, num_train_steps = 0, 0
 
@@ -109,11 +108,6 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
             outputs = engine(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
             logits = outputs['logits']
             loss = engine.criterion(logits, label_ids)
-
-            writer.add_scalar('train/loss', loss.item(), global_step)
-            writer.add_scalar('train/lr', lr_scheduler.get_last_lr()[0], global_step)
-            # writer.add_scalar('train/scale', engine.optimizer.scaler.get_scale(), global_step)
-
             engine.backward(loss)
 
             # step
@@ -133,13 +127,14 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
         'train:num_steps': num_train_steps,
     })
 
-    logger.info(results)
+    logger.info(results, ranks=[0])
+
+    model_to_save = engine.model
+    state_dict = model_to_save.state_dict()
 
     if gpc.get_global_rank() == 0 and not args.skip_checkpoint:
-        model_to_save = engine.model
-
         torch.save(
-            {"model": model_to_save.state_dict()},
+            {"model": state_dict},
             args.output_dir.joinpath('glue_weights.pth'),
         )
 
@@ -157,6 +152,8 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
                 else:
                     raise AttributeError(
                         f"Cannot find attribute config or inner module in {model_to_save.__class__.__name__}")
+
+    torch.distributed.barrier()
 
 
 def get_eval_dataloader(args, tokenizer, processor, logger):
@@ -256,6 +253,7 @@ def run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map
         'infer:latency(ms):sum': np.sum(eval_latencies),
         'infer:throughput(samples/s):avg': eval_throughput,
     })
+
     preds = np.argmax(preds, axis=1)
 
     if args.predict:
@@ -270,28 +268,4 @@ def run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map
         results['eval:loss'] = eval_loss / nb_eval_steps
         eval_result = compute_metrics(args.task_name, preds, out_label_ids)
         results.update(eval_result)
-        logger.info(results)
-
-    # if is_main_process():
-    #     logger.info("***** Results *****")
-    #     for key in sorted(results.keys()):
-    #         logger.info("  %s = %s", key, str(results[key]))
-    #     with open(os.path.join(args.output_dir, "results.txt"), "w") as writer:
-    #         json.dump(results, writer)
-    #     dllogger_queries_from_results = {
-    #         'exact_match': 'acc',
-    #         'F1': 'f1',
-    #         'e2e_train_time': 'train:latency',
-    #         'training_sequences_per_second': 'train:throughput',
-    #         'e2e_inference_time': ('infer:latency(ms):sum', lambda x: x / 1000),
-    #         'inference_sequences_per_second': 'infer:throughput(samples/s):avg',
-    #     }
-    #     for key, query in dllogger_queries_from_results.items():
-    #         results_key, convert = (query if isinstance(query, tuple) else
-    #                                 (query, lambda x: x))
-    #         if results_key not in results:
-    #             continue
-    #         dllogger.log(
-    #             step=tuple(),
-    #             data={key: convert(results[results_key])},
-    #         )
+        logger.info(results, ranks=[0])

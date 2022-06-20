@@ -1,7 +1,7 @@
-from argparse import ArgumentError
 import colossalai
 import transformers
 import torch
+from argparse import ArgumentError
 from pathlib import Path
 from colossalai.core import global_context as gpc
 from colossalai.logging import get_dist_logger
@@ -13,15 +13,13 @@ from utils import (get_model, get_optimizer, get_lr_scheduler, get_eval_dataload
 from colossalai.engine.gradient_accumulation import GradAccumLrSchedulerByStep
 from colossalai.zero.init_ctx import ZeroInitContext
 from colossalai.zero.shard_utils import TensorShardStrategy
-from colossalai.zero.sharded_model import ShardedModelV2
-from colossalai.zero.sharded_optim import ShardedOptimizerV2
 
 
 def main():
     args = parse_args()
 
     # init distributed environment
-    colossalai.launch_from_torch(config='./configs/colossalai_amp.py')
+    colossalai.launch_from_torch(config='./configs/colossalai_zero.py')
 
     use_zero = hasattr(gpc.config, 'zero')
 
@@ -49,30 +47,32 @@ def main():
                                                            do_lower_case=args.do_lower_case,
                                                            max_len=512)
 
+    # check if checkpoint file is given
+    if args.init_checkpoint:
+        use_hf_pretrain = False
+    else:
+        use_hf_pretrain = True
+
     # Prepare model
     if use_zero:
         shard_strategy = TensorShardStrategy()
         with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy,
                              shard_param=True):
-            model = get_model(args.bert_config, num_labels)
-        model = ShardedModelV2(model, shard_strategy, tensor_placement_policy='cuda', reuse_fp16_shard=True)
+            model = get_model(args.bert_config, num_labels, use_hf_pretrain)
     else:
-        model = get_model(args.bert_config, num_labels)
+        model = get_model(args.bert_config, num_labels, use_hf_pretrain)
 
-    # logger.info("USING CHECKPOINT from {}".format(args.init_checkpoint), ranks=[0])
-    # checkpoint = torch.load(args.init_checkpoint, map_location='cpu')
-
-    # # TODO: why need this?
-    # checkpoint = checkpoint["model"] if "model" in checkpoint.keys() else checkpoint
-
-    # model.load_state_dict(checkpoint, strict=False)
-    # logger.info("USED CHECKPOINT from {}".format(args.init_checkpoint), ranks=[0])
+    if use_hf_pretrain:
+        logger.info("Loading model checkpoint from HuggingFace pretrained weights", ranks=[0])
+    else:
+        logger.info(f"Loading model checkpoint from {args.init_checkpoint}", ranks=[0])
+        checkpoint = torch.load(args.init_checkpoint, map_location='cpu')
+        checkpoint = checkpoint["model"] if "model" in checkpoint.keys() else checkpoint
+        model.load_state_dict(checkpoint, strict=False)
+        logger.info("Model checkpoint is loaded", ranks=[0])
 
     # Prepare optimizer
     optimizer = get_optimizer(model, args.learning_rate)
-
-    if use_zero:
-        optimizer = ShardedOptimizerV2(model, optimizer, initial_scale=2**5)
 
     # prepare loss function
     criterion = torch.nn.CrossEntropyLoss()
@@ -110,7 +110,8 @@ def main():
     if args.eval:
         run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map, logger)
 
+    gpc.destroy()
+
 
 if __name__ == '__main__':
-    print('hey')
     main()

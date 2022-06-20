@@ -34,7 +34,6 @@ def add_training_args(parser):
         "--init_checkpoint",
         default=None,
         type=str,
-        required=True,
         help="The checkpoint file from pretraining",
     )
     group.add_argument("--train_batch_size", default=16, type=int, help="Batch size per GPU for training.")
