@@ -1,3 +1,4 @@
+from cmath import e
 import json
 import os
 import transformers
@@ -153,6 +154,9 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
                     model_to_save = model_to_save.module
                 elif hasattr(model_to_save, 'model'):
                     model_to_save = model_to_save.model
+                else:
+                    raise AttributeError(
+                        f"Cannot find attribute config or inner module in {model_to_save.__class__.__name__}")
 
 
 def get_eval_dataloader(args, tokenizer, processor, logger):
