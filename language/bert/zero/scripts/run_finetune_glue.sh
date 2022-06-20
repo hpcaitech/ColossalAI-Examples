@@ -3,7 +3,7 @@ GLUE_DATASET=/home/lclsg/projects/colossal/github/lsg/ColossalAI-Examples/langua
 VOCAB_FILE="bert-base-uncased"
 CODE_DIR=$PWD/finetuning/glue
 
-colossalai run --nproc_per_node 1 \
+colossalai run --nproc_per_node 4 \
     --master_port 29505 \
     $CODE_DIR/main.py \
     --data_dir $GLUE_DATASET \
@@ -12,7 +12,7 @@ colossalai run --nproc_per_node 1 \
     --vocab_file $VOCAB_FILE \
     --init_checkpoint /home/lclsg/projects/DeepLearningExamples/PyTorch/LanguageModeling/BERT/download/nvidia_pretrained_weights/bert_base.pt \
     --output_dir ./out \
-    --train_batch_size 128 \
+    --train_batch_size 32 \
     --eval_batch_size 128 \
     --num_train_epochs 3 \
     --train \

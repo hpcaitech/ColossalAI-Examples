@@ -1,7 +1,5 @@
-from cProfile import label
 import json
 import os
-from unittest import result
 import transformers
 import torch
 
@@ -137,23 +135,24 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
     logger.info(results)
 
     if gpc.get_global_rank() == 0 and not args.skip_checkpoint:
-        model = engine.model
-        if isinstance(model, ShardedModelV2):
-            model = model.module
-
-        if hasattr(model, 'module'):
-            model_to_save = model.module
-        elif hasattr(model, 'model'):
-            model_to_save = model.model
-        else:
-            model_to_save = model
+        model_to_save = engine.model
 
         torch.save(
             {"model": model_to_save.state_dict()},
             args.output_dir.joinpath('glue_weights.pth'),
         )
-        with open(args.output_dir.joinpath('bert_config.json'), 'w') as f:
-            f.write(model_to_save.config.to_json_string())
+
+        # look for the model config and save
+        while True:
+            if hasattr(model_to_save, 'config'):
+                with open(args.output_dir.joinpath('bert_config.json'), 'w') as f:
+                    f.write(model_to_save.config.to_json_string())
+                break
+            else:
+                if hasattr(model_to_save, 'module'):
+                    model_to_save = model_to_save.module
+                elif hasattr(model_to_save, 'model'):
+                    model_to_save = model_to_save.model
 
 
 def get_eval_dataloader(args, tokenizer, processor, logger):
