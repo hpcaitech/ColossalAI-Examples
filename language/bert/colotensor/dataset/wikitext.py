@@ -9,7 +9,7 @@ from datasets import load_from_disk, set_progress_bar_enabled
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.distributed import get_world_size
 
-from transformers import BertTokenizer, default_data_collator
+from transformers import BertTokenizer, DataCollatorForLanguageModeling
 from colossalai.logging import get_dist_logger
 
 
@@ -48,26 +48,23 @@ def build_data_from_wikitext(dataset_path: str, tokenizer_path: str, seq_len: in
         torch.manual_seed(worker_seed)
         random.seed(worker_seed)
 
-    train_sampler = DistributedSampler(tokenized_dataset["train"], shuffle=True) if world_size > 1 else None
-    train_data = DataLoader(
-        tokenized_dataset["train"],
-        shuffle=(train_sampler is None),
-        sampler=train_sampler,
-        drop_last=True,
-        collate_fn=default_data_collator,
-        worker_init_fn=seed_worker,
-        batch_size=batch_size,
-        pin_memory=True,
-    )
-    test_sampler = DistributedSampler(tokenized_dataset["validation"], shuffle=False) if world_size > 1 else None
-    test_data = DataLoader(
-        tokenized_dataset["validation"],
-        sampler=test_sampler,
-        drop_last=True,
-        collate_fn=default_data_collator,
-        worker_init_fn=seed_worker,
-        batch_size=batch_size,
-        pin_memory=True,
-    )
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=0.15)
+    train_sampler = DistributedSampler(tokenized_dataset['train'], shuffle=True) if world_size > 1 else None
+    train_data = DataLoader(tokenized_dataset['train'],
+                            shuffle=(train_sampler is None),
+                            sampler=train_sampler,
+                            drop_last=True,
+                            collate_fn=data_collator,
+                            worker_init_fn=seed_worker,
+                            batch_size=batch_size,
+                            pin_memory=True)
+    test_sampler = DistributedSampler(tokenized_dataset['validation'], shuffle=False) if world_size > 1 else None
+    test_data = DataLoader(tokenized_dataset['validation'],
+                           sampler=test_sampler,
+                           drop_last=True,
+                           collate_fn=data_collator,
+                           worker_init_fn=seed_worker,
+                           batch_size=batch_size,
+                           pin_memory=True)
 
     return train_data, test_data
