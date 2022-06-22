@@ -8,11 +8,11 @@ from colossalai.nn.optimizer import HybridAdam
 from transformers import GPT2Config, GPT2LMHeadModel
 from time import time
 from functools import partial
-from colossalai.tensor.chunk import ChunkManager
-from colossalai.gemini.gemini_mgr import GeminiManager
+from colossalai.tensor import ChunkManager
+from colossalai.gemini import GeminiManager
 from colossalai.utils.model.colo_init_context import ColoInitContext
 from colossalai.utils import get_current_device
-from colossalai.nn.parallel import ColoDDPV2
+from colossalai.nn.parallel import ZeroDDP
 from colossalai.zero import ZeroOptimizer
 
 
@@ -81,6 +81,7 @@ def main():
     SEQ_LEN = 1024
     VOCAB_SIZE = 50257
     NUM_STEPS = 10
+    PLACEMENT_POLICY = 'cpu'
     disable_existing_loggers()
     colossalai.launch_from_torch(config={})
     logger = get_dist_logger()
@@ -94,9 +95,9 @@ def main():
     get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
     chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
     chunk_manager = ChunkManager(chunk_size, enable_distributed_storage=True,
-                                 init_device=GeminiManager.get_default_device('cpu'))
-    gemini_manager = GeminiManager('cpu', chunk_manager)
-    model = ColoDDPV2(model, gemini_manager)
+                                 init_device=GeminiManager.get_default_device(PLACEMENT_POLICY))
+    gemini_manager = GeminiManager(PLACEMENT_POLICY, chunk_manager)
+    model = ZeroDDP(model, gemini_manager)
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
     logger.info(chunk_manager, ranks=[0])
 
