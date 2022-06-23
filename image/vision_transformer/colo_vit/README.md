@@ -22,3 +22,10 @@ pytest test_vit.py
 ```
 
 This will evaluate models with different **world_size** and **use_ddp**.
+
+
+'''shell
+sh run.sh
+'''
+
+This will start Vit-S training with ImageNet.
