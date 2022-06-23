@@ -68,7 +68,9 @@ def train_imagenet():
 
     logger.info('Build data loader', ranks=[0])
     root = os.environ['DATA']
-    train_dataloader, test_dataloader = build_dali_imagenet(root, rand_augment=False)
+    train_dataloader, test_dataloader = build_dali_imagenet(root,
+                                                            train_batch_size=gpc.config.BATCH_SIZE,
+                                                            test_batch_size=gpc.config.BATCH_SIZE)
 
     logger.info('Build model', ranks=[0])
 
@@ -120,8 +122,7 @@ def train_imagenet():
             else:
                 loss.backward()
             optimizer.step()
-            if index > 10:
-                break
+
         logger.info(
             f"Finish Train Epoch [{epoch+1}/{gpc.config.NUM_EPOCHS}] loss: {loss.item():.3f} lr: {optimizer.state_dict()['param_groups'][0]['lr']}",
             ranks=[0])
@@ -129,17 +130,30 @@ def train_imagenet():
         model.eval()
         test_loss = 0
         correct = 0
+        test_sum = 0
         with torch.no_grad():
             for index, (x, y) in tqdm(enumerate(test_dataloader), total=len(test_dataloader), leave=False):
                 x, y = x.cuda(), y.cuda()
                 output = model(x)
-                test_loss += F.nll_loss(output, y, reduction='sum').item()
+                test_loss += F.cross_entropy(output, y, reduction='sum').item()
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(y.view_as(pred)).sum().item()
-        test_loss /= len(test_loader.dataset)
+                test_sum += y.size(0)
+        test_loss /= test_sum
         logger.info(
-            f"Finish Test Epoch [{epoch+1}/{gpc.config.NUM_EPOCHS}] loss: {test_loss:.3f} Accuracy: [{correct}/{len(test_dataloader.dataset)}]({correct/len(test_dataloader.dataset):.3f})",
+            f"Finish Test Epoch [{epoch+1}/{gpc.config.NUM_EPOCHS}] loss: {test_loss:.3f} Accuracy: [{correct}/{test_sum}]({correct/test_sum:.3f})",
             ranks=[0])
+
+        lr_scheduler.step()
+
+        state = {
+            'epoch': epoch,
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'lr_scheduler': lr_scheduler.state_dict()
+        }
+        if epoch % 10 == 0:
+            torch.save(state, './checkpoint/epoch_{epoch}.pth')
 
 
 if __name__ == '__main__':
