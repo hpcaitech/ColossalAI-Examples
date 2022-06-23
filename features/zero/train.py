@@ -4,12 +4,14 @@ import psutil
 import torch
 import torch.nn as nn
 from colossalai.logging import disable_existing_loggers, get_dist_logger
-from colossalai.nn.optimizer import CPUAdam
+from colossalai.nn.optimizer import HybridAdam
 from colossalai.zero.init_ctx import ZeroInitContext
 from colossalai.zero.shard_utils import TensorShardStrategy
 from colossalai.zero.sharded_model import ShardedModelV2
 from colossalai.zero.sharded_optim import ShardedOptimizerV2
 from transformers import GPT2Config, GPT2LMHeadModel
+from time import time
+from functools import partial
 
 
 class GPTLMModel(nn.Module):
@@ -68,6 +70,10 @@ def get_mem_info(prefix=''):
     return f'{prefix}GPU memory usage: {get_gpu_mem():.2f} MB, CPU memory usage: {get_cpu_mem():.2f} MB'
 
 
+def get_tflops(model_numel, batch_size, seq_len, step_time):
+    return model_numel * batch_size * seq_len * 8 / 1e12 / (step_time + 1e-12)
+
+
 def main():
     BATCH_SIZE = 8
     SEQ_LEN = 1024
@@ -80,19 +86,21 @@ def main():
     logger.info(get_mem_info(), ranks=[0])
     # build GPT model
     shard_strategy = TensorShardStrategy()
-    with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True):
+    with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy, shard_param=True) as ctx:
         model = gpt2_medium(checkpoint=True)
-    # Enable CPU offload for parameters and gradients
-    model = ShardedModelV2(model, shard_strategy, offload_config={'device': 'cpu'}, reuse_fp16_shard=True)
+    numel = ctx.model_numel_tensor.item()
+    logger.info(f'Model numel: {numel}', ranks=[0])
+    get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
+    # Set tensor_placement_policy='cpu', which will offload params, grads and os
+    model = ShardedModelV2(model, shard_strategy, tensor_placement_policy='cpu', reuse_fp16_shard=True)
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
 
     # build criterion
     criterion = GPTLMLoss()
 
     # optimizer
-    optimizer = CPUAdam(model.parameters(), lr=1e-3)
-    # Enable CPU offload for optimizer states
-    optimizer = ShardedOptimizerV2(model, optimizer, cpu_offload=True, initial_scale=2**5)
+    optimizer = HybridAdam(model.parameters(), lr=1e-3)
+    optimizer = ShardedOptimizerV2(model, optimizer, initial_scale=2**5)
     logger.info(get_mem_info(prefix='After init optim, '), ranks=[0])
 
     model.train()
@@ -100,13 +108,17 @@ def main():
         # we just use randomly generated data here
         input_ids, attn_mask = get_data(BATCH_SIZE, SEQ_LEN, VOCAB_SIZE)
         optimizer.zero_grad()
+        start = time()
         outputs = model(input_ids, attn_mask)
         loss = criterion(outputs, input_ids)
-        logger.info(get_mem_info(prefix=f'Forward [{n+1}/{NUM_STEPS}] '), ranks=[0])
+        logger.info(get_mem_info(prefix=f'[{n+1}/{NUM_STEPS}] Forward '), ranks=[0])
         optimizer.backward(loss)
-        logger.info(get_mem_info(prefix=f'Backward [{n+1}/{NUM_STEPS}] '), ranks=[0])
+        logger.info(get_mem_info(prefix=f'[{n+1}/{NUM_STEPS}] Backward '), ranks=[0])
         optimizer.step()
-        logger.info(get_mem_info(prefix=f'Optimizer step [{n+1}/{NUM_STEPS}] '), ranks=[0])
+        logger.info(get_mem_info(prefix=f'[{n+1}/{NUM_STEPS}] Optimizer step '), ranks=[0])
+        step_time = time() - start
+        logger.info(
+            f'[{n+1}/{NUM_STEPS}] Loss:{loss.item():.3f}, Step time: {step_time:.3f}s, TFLOPS: {get_tflops_func(step_time):.3f}', ranks=[0])
 
 
 if __name__ == '__main__':

@@ -13,55 +13,20 @@ from colossalai.logging import get_dist_logger
 from colossalai.nn import CrossEntropyLoss
 from colossalai.nn.lr_scheduler import CosineAnnealingWarmupLR
 from colossalai.utils import is_using_pp
-from colossalai.engine.schedule import PipelineSchedule, NonPipelineSchedule
-from dataloader import DaliDataloader
-from model.vit import build_pipeline_vit
-from model_zoo.vit.vit import _create_vit_model
+from titans.dataloader.imagenet import build_dali_imagenet
+from colossalai.pipeline.pipelinable import PipelinableContext
+from titans.model.vit.vit import _create_vit_model
 from tqdm import tqdm
-
-
-DATASET_PATH = os.environ['DATA']
-
-TRAIN_RECS = DATASET_PATH + '/train/*'
-VAL_RECS = DATASET_PATH + '/validation/*'
-TRAIN_IDX = DATASET_PATH + '/idx_files/train/*'
-VAL_IDX = DATASET_PATH + '/idx_files/validation/*'
-
-
-def build_dali_train(batch_size):
-    return DaliDataloader(
-        sorted(glob.glob(TRAIN_RECS)),
-        sorted(glob.glob(TRAIN_IDX)),
-        batch_size=batch_size,
-        shard_id=gpc.get_local_rank(ParallelMode.DATA),
-        num_shards=gpc.get_world_size(ParallelMode.DATA),
-        training=True,
-        gpu_aug=False,
-        cuda=False,
-    )
-
-
-def build_dali_test(batch_size):
-    return DaliDataloader(
-        sorted(glob.glob(VAL_RECS)),
-        sorted(glob.glob(VAL_IDX)),
-        batch_size=batch_size,
-        shard_id=gpc.get_local_rank(ParallelMode.DATA),
-        num_shards=gpc.get_world_size(ParallelMode.DATA),
-        training=False,
-        gpu_aug=False,
-        cuda=False,
-    )
 
 
 def train_imagenet():
     args = colossalai.get_default_parser().parse_args()
     # standard launch
-    colossalai.launch_from_slurm(config=args.config,
-                                 host=args.host,
-                                 port=29500)
+    # colossalai.launch_from_slurm(config=args.config,
+    #                              host=args.host,
+    #                              port=29500)
     # if using torch distributed launcher
-    # colossalai.launch_from_torch(config=args.config)
+    colossalai.launch_from_torch(config=args.config)
 
     logger = get_dist_logger()
     if hasattr(gpc.config, 'LOG_PATH'):
@@ -76,7 +41,7 @@ def train_imagenet():
     # create model
     model_kwargs = dict(img_size=gpc.config.IMG_SIZE,
                         patch_size=gpc.config.PATCH_SIZE,
-                        dim=gpc.config.HIDDEN_SIZE,
+                        hidden_size=gpc.config.HIDDEN_SIZE,
                         depth=gpc.config.DEPTH,
                         num_heads=gpc.config.NUM_HEADS,
                         mlp_ratio=gpc.config.MLP_RATIO,
@@ -85,7 +50,12 @@ def train_imagenet():
                         checkpoint=gpc.config.CHECKPOINT)
 
     if use_pipeline:
-        model = build_pipeline_vit(num_layers=model_kwargs['depth'], num_chunks=1, **model_kwargs)
+        pipelinable = PipelinableContext()
+        with pipelinable:
+            model = _create_vit_model(**model_kwargs)
+        pipelinable.to_layer_list()
+        pipelinable.policy = "uniform"
+        model = pipelinable.partition(1, gpc.pipeline_parallel_size, gpc.get_local_rank(ParallelMode.PIPELINE))
     else:
         model = _create_vit_model(**model_kwargs)
 
@@ -99,9 +69,9 @@ def train_imagenet():
         pipeline_stage = gpc.get_local_rank(ParallelMode.PIPELINE)
     logger.info(f"number of parameters: {total_numel} on pipeline stage {pipeline_stage}")
 
-    # craete dataloaders
-    train_dataloader = build_dali_train(gpc.config.BATCH_SIZE)
-    test_dataloader = build_dali_test(gpc.config.BATCH_SIZE)
+    # create dataloaders
+    root = os.environ['DATA']
+    train_dataloader, test_dataloader = build_dali_imagenet(root, rand_augment=False)
 
     # create loss function
     criterion = CrossEntropyLoss(label_smoothing=0.1)
@@ -114,7 +84,7 @@ def train_imagenet():
                                            total_steps=gpc.config.NUM_EPOCHS,
                                            warmup_steps=gpc.config.WARMUP_EPOCHS)
 
-    # intiailize
+    # initialize
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(model=model,
                                                                          optimizer=optimizer,
                                                                          criterion=criterion,
@@ -130,14 +100,6 @@ def train_imagenet():
         scatter_gather = True
     else:
         scatter_gather = False
-    if use_pipeline:
-        logger.info('Build PipelineSchedule', ranks=[0])
-        schedule = PipelineSchedule(gpc.config.NUM_MICRO_BATCHES,
-                                    tensor_shape=tensor_shape, scatter_gather_tensors=scatter_gather)
-        schedule.pre_processing(engine)
-
-    if schedule is None:
-        schedule = NonPipelineSchedule()
 
     data_iter = iter(train_dataloader)
 
@@ -146,16 +108,13 @@ def train_imagenet():
         engine.train()
 
         if gpc.get_global_rank() == 0:
-            description = 'Epoch {} / {}'.format(
-                epoch,
-                gpc.config.NUM_EPOCHS
-            )
+            description = 'Epoch {} / {}'.format(epoch, gpc.config.NUM_EPOCHS)
             progress = tqdm(range(len(train_dataloader)), desc=description)
         else:
             progress = range(len(train_dataloader))
         for _ in progress:
             engine.zero_grad()
-            schedule.forward_backward_step(engine, data_iter, return_output_label=False)
+            engine.execute_schedule(data_iter, return_output_label=False)
             engine.step()
             lr_scheduler.step()
 

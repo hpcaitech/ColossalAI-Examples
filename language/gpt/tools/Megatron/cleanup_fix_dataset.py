@@ -44,7 +44,7 @@ def process_doc(json_line, args):
         'general_cleaning': False}
 
     try:
-        # Reomove all docs with less than 512 characters
+        # Remove all docs with less than 512 characters
         if "remove_512" in args.tasks:
             if len(text) < 512:
                 output['remove_512'] = True

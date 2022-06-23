@@ -1,13 +1,15 @@
 from colossalai.amp import AMP_TYPE
-from model_zoo.gpt.gpt import GPTLMLoss
-from model import GPT2_small_pipeline_hybrid
+from titans.loss.lm_loss import GPTLMLoss
+from titans.model.gpt import gpt2_small
+#from model_zoo.gpt.gpt import gpt2_small_pipeline
 from torch.optim import Adam
 
 
-BATCH_SIZE = 1
+BATCH_SIZE = 8
 SEQ_LEN = 1024
 NUM_EPOCHS = 60
-NUM_MICRO_BATCHES = 1
+HIDDEN_SIZE = 768
+NUM_MICRO_BATCHES = 4
 PIPELINE = 2
 
 optimizer = dict(
@@ -25,7 +27,7 @@ loss = dict(
 )
 
 model = dict(
-    type=GPT2_small_pipeline_hybrid,
+    type=gpt2_small,
     checkpoint=True,
 )
 

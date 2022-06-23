@@ -26,7 +26,7 @@ def _build_train_valid_test_datasets(data_prefix, data_impl, splits_string,
                                            skip_warmup)
 
     # Get start and end indices of train/valid/train into doc-idx
-    # Note that doc-idx is desinged to be num-docs + 1 so we can
+    # Note that doc-idx is designed to be num-docs + 1 so we can
     # easily iterate over it.
     total_num_of_documents = indexed_dataset.doc_idx.shape[0] - 1
     splits = get_train_valid_test_split_(splits_string, total_num_of_documents)

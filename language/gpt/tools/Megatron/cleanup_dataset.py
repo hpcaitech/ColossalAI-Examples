@@ -24,7 +24,7 @@ import sys
 
 from tokenizer import Tokenizer
 
-MIN_DOCUMENT_LENGHT = 128
+MIN_DOCUMENT_LENGTH = 128
 
 
 def print_progress(prefix, start_time, num_docs, num_fixed_text,
@@ -75,9 +75,9 @@ def filter_corpus(filename, out_filename, print_interval=10000):
                         continue
                     # On average each token is 5 characters so 8 is an
                     # upper bound.
-                    if len(text) < (8 * MIN_DOCUMENT_LENGHT):
+                    if len(text) < (8 * MIN_DOCUMENT_LENGTH):
                         tokens = tokenizer.tokenize_document(text)
-                        if len(tokens) < MIN_DOCUMENT_LENGHT:
+                        if len(tokens) < MIN_DOCUMENT_LENGTH:
                             print('[small document, skipping]:', myjson)
                             num_small_docs += 1
                             chars_small_docs += len(text)

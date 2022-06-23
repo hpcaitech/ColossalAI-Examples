@@ -6,7 +6,7 @@ You may refer to [our documentation on mixed precision training](https://colossa
 
 > ⚠️ This example is only for demo purpose, no guarantee on the convergence performance
 
-# Prerequiste
+# Prerequisite
 
 ```shell
 pip install timm scipy
@@ -14,56 +14,17 @@ pip install timm scipy
 
 # How to run
 
-On a single server, you can directly use `torch.distributed.launch` to start pre-training on multiple GPUs in parallel. In Colossal-AI, we provided fours ways to initialize the distributed environment. 
-
-1. `colossalai.launch`
-2. `colossalai.launch_from_torch`
-3. `colossalai.launch_from_slurm`
-4. `colossalai.launch_from_openmpi`
-
-The first launch method is the most general for different cases and the remaining methods are helper methods for different launchers. In this example, we use `launch_from_torch` for demo purpose. 
-
-The config file can be any file in the `config` directory:
-- `config_AMP_apex.py`: rely on [Nvidia APEX](https://github.com/NVIDIA/apex) for mixed precision training
-- `config_AMP_torch.py`: rely on [Torch CUDA AMP](https://pytorch.org/docs/stable/amp.html) for mixed precision training
-- `config_AMP_naive.py`: all operations are performed in fp16
-- `config_fp32.py`: all operations are performed in fp32
-
-
-> ❗️ You should run with 1 GPU first if you do not have a ready dataset. If you run with 4 GPUs, the dataset will be downloaded and extracted simulateneously and may be corrupted.
-
-You can invoke the following command to start training.
+You can execute the following command with 4 GPUs by replacing `config-name` with the actual config file name.
+You may change `--nproc_per_node` to the number of GPUs you have on your machine.
+The dataset will be downloaded to `./data` by default. If you wish to download it somewhere else, you can run `export DATA=/you/path` in terminal.
 
 ```shell
-python -m torch.distributed.launch --nproc_per_node <world_size> --master_addr localhost --master_port 29500 train_with_engine.py --config config/<config file>
+# run with 4 GPUs with engine
+colossalai run --nproc_per_node 4 train.py --config ./config/<config-name>.py
+
+# run with 4 GPUs with trainer
+colossalai run --nproc_per_node 4 train.py --config ./config/<config-name>.py --use_trainer
 ```
-
-For example, if you wish to run on 4 GPUs with Torch AMP.
-
-```shell
-python -m torch.distributed.launch --nproc_per_node 4 --master_addr localhost --master_port 29500 train_with_engine.py --config config/config_AMP_torch.py
-```
-
-__
-
-If you are using `colossalai.launch_from_slurm`, you can uncomment the `colossalai.launch_from_slurm` and comment out the `colossalai.launch_from_torch`.
-
-```python
-# initialize distributed setting
-parser = colossalai.get_default_parser()
-args = parser.parse_args()
-colossalai.launch_from_slurm(config=args.config,
-                            host=args.host,
-                            port=args.port,
-                            backend=args.backend
-                            )
-```
-
-```shell
-HOST=<node name> srun bash ./scripts/train_slurm.sh
-```
-
----
 
 # Experiments
 In order to let everyone have a more intuitive feeling about amp, we use several amp methods to pretrain VIT-Base/16 on ImageNet-1K. The experimental results aims to prove that amp's efficiency in reducing memory and improving efficiency, so that hyperparameters such as learning rate may not be optimal.
@@ -90,15 +51,10 @@ We also use the example code in this repo to train ViT-Base/16 on caltech101 dat
 We observed a significant reduction in memory usage. The amp methods also slightly outperforms the full precision training in efficiency. However, the throughput of AMP training is not as well performed as in the last test(ImageNet-1K), which may be because the dataloader has become the bottleneck. It is very likely that most of the time is spent in reading data, and there is still a large computational advantage. You can add a timer to check the forward/backward time.
 
 
-
-
 # Details
 `config.py`
 This is a [configuration file](https://colossalai.org/config.html) that defines hyperparameters and training scheme (fp16, gradient accumulation, etc.). The config content can be accessed through `gpc.config` in the program. By tuning the parallelism configuration, this example can be quickly deployed to a single server with several GPUs or to a large cluster with lots of nodes and GPUs. 
 
 
-`train_with_engine.py`
-We start the training process using Colossal-AI with engine.
-
-`train_with_trainer.py`
-We start the training process using Colossal-AI with trainer.
+`train.py`
+The script to start training with Colossal-AI.

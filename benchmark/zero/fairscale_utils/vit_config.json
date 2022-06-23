@@ -1,0 +1,30 @@
+{
+  "method": "fairscale",
+  "model": {
+    "type": "vit_h",
+    "checkpoint": false
+  },
+  "hyperparameter": {
+    "batch_size": 4
+  },
+  "fp16": {
+    "enabled": true,
+    "init_scale": 32768,
+    "growth_factor": 2.0,
+    "backoff_factor": 0.5,
+    "growth_interval": 1000
+  },
+  "gradient_clipping": 1.0,
+  "fsdp": {
+    "reshard_after_forward": true,
+    "mixed_precision": true,
+    "fp32_reduce_scatter": false,
+    "flatten_parameters": true,
+    "move_params_to_cpu": true,
+    "bucket_cap_mb": 25,
+    "clear_autocast_cache": false,
+    "force_input_to_fp32": false,
+    "state_dict_on_rank_0_only": false
+  },
+  "use_mem_monitor": true
+}

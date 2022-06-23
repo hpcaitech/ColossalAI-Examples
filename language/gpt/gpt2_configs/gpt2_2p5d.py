@@ -1,11 +1,12 @@
 from colossalai.amp import AMP_TYPE
-from model_zoo.gpt.gpt import GPTLMLoss, gpt2_small
+from titans.loss.lm_loss import GPTLMLoss
+from titans.model.gpt import gpt2_small
 from torch.optim import Adam
 
 BATCH_SIZE = 4
 SEQ_LEN = 1024
 NUM_EPOCHS = 60
-TERSOR_PARALLEL = 8
+TENSOR_PARALLEL = 8
 DEPTH = 2
 
 
@@ -31,5 +32,5 @@ model = dict(
 
 parallel = dict(
     pipeline=1,
-    tensor=dict(size=TERSOR_PARALLEL, depth=DEPTH, mode='2.5d'),
+    tensor=dict(size=TENSOR_PARALLEL, depth=DEPTH, mode='2.5d'),
 )

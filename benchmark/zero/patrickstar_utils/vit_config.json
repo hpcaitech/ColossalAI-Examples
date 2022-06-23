@@ -1,0 +1,30 @@
+{
+  "method": "patrickstar",
+  "model": {
+    "type": "vit_h"
+  },
+  "hyperparameter": {
+    "batch_size": 4
+  },
+  "optimizer": {
+    "type": "AdamW",
+    "params": {
+      "lr": 0.0015,
+      "weight_decay": 0.01,
+      "use_hybrid_adam": true
+    }
+  },
+  "fp16": {
+    "enabled": true,
+    "loss_scale": 0,
+    "initial_scale_power": 15,
+    "loss_scale_window": 1000,
+    "hysteresis": 2,
+    "min_loss_scale": 1
+  },
+  "default_chunk_size": 67108864,
+  "release_after_init": true,
+  "gradient_clipping": 1.0,
+  "use_cpu_embedding": false,
+  "use_mem_monitor": true
+}

@@ -1,4 +1,4 @@
-from colossalai.nn.optimizer import CPUAdam
+from colossalai.nn.optimizer import HybridAdam
 from colossalai.zero.shard_utils import (BucketTensorShardStrategy,
                                          TensorShardStrategy)
 from model import GPT2_small_pipeline_hybrid
@@ -11,17 +11,15 @@ HIDDEN_SIZE = 768
 TENSOR_SHAPE = (BATCH_SIZE // NUM_MICRO_BATCHES, SEQ_LEN, HIDDEN_SIZE)
 zero = dict(
     model_config=dict(
-        offload_config=dict(device="cpu"),
+        tensor_placement_policy='cpu',
         shard_strategy=BucketTensorShardStrategy()
     ),
-    optimizer_config=dict(
-        cpu_offload=True,
-    )
+    optimizer_config=dict()
 )
 
 
 optimizer = dict(
-    type=CPUAdam,
+    type=HybridAdam,
     lr=0.00015,
     weight_decay=1e-2,
 )

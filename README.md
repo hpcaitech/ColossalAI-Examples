@@ -6,15 +6,29 @@ This repository provides various examples for **Colossal-AI**. For each feature 
 Colossal-AI, you can find a simple example in the `feature` folder and a corresponding tutorial in feature section of the [**documentation**](https://www.colossalai.org/). For more complex examples for domain-specific models, you can find them in this repository as well. Some of them are covered in the advanced tutorials 
 of the [**documentation**](https://www.colossalai.org/).
 
+This repository is built upon Colossal-AI and Titans.
+
+<div align="center">
+    <img src="https://raw.githubusercontent.com/hpcaitech/public_assets/main/examples/images/repo_relation.png" width="300" title="repo-architecture">
+</div>
+
+
 ### 🚀 Quick Links
 
 [**Colossal-AI**](https://github.com/hpcaitech/ColossalAI) | 
+[**Titans**](https://github.com/hpcaitech/Titans)
 [**Paper**](https://arxiv.org/abs/2110.14883) | 
 [**Documentation**](https://www.colossalai.org/) | 
 [**Forum**](https://github.com/hpcaitech/ColossalAI/discussions) | 
 [**Blog**](https://www.colossalai.org/) 
 
 ## Setup
+
+1. Install Colossal-AI
+
+You can download Colossal-AI [here](https://www.colossalai.org/download).
+
+2. Install dependencies
 
 ```
 pip install -r requirements.txt
@@ -58,7 +72,7 @@ The `image` and `language` folders are for complex model applications. The `feat
 ## Discussion
 
 Discussion about the Colossal-AI project and examples is always welcomed! We would love to exchange ideas with the community to better help this project grow.
-If you think there is a need to discuss anything, you may jump to our [dicussion forum](https://github.com/hpcaitech/ColossalAI/discussions) and create a topic there.
+If you think there is a need to discuss anything, you may jump to our [discussion forum](https://github.com/hpcaitech/ColossalAI/discussions) and create a topic there.
 
 If you encounter any problem while running these examples, you may want to raise an issue in this repository.
 
@@ -74,9 +88,9 @@ If you find that an example is broken (not working) or not user-friendly, you ma
 
 If you wish to add an example for a specific application, please follow the steps below.
 
-1. create a folder in the `image`, `language` or `features` folders. Generally we do not accept new examples for `features` as one example is often enough. **We encourage contribution with hybrid parallel or models of different domains (e.g. GAN, self-supervised, detection, video understadning, text classification, text generation)**
+1. create a folder in the `image`, `language` or `features` folders. Generally we do not accept new examples for `features` as one example is often enough. **We encourage contribution with hybrid parallel or models of different domains (e.g. GAN, self-supervised, detection, video understanding, text classification, text generation)**
 2. Prepare configuration files and `train.py`
-3. Prepare a detailed readme on envirionment setup, dataset preparation, code execution, etc. in your example folder
+3. Prepare a detailed readme on environment setup, dataset preparation, code execution, etc. in your example folder
 4. Update the table of content (first section above) in this readme file
 
 

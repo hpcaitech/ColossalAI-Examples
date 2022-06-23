@@ -64,7 +64,7 @@ def main():
     optimizer = colossalai.nn.FusedSGD(model.parameters(), lr=gpc.config.LEARNING_RATE,
                                        weight_decay=gpc.config.WEIGHT_DECAY, momentum=gpc.config.MOMENTUM)
 
-    # lr_scheduelr
+    # lr_scheduler
     lr_scheduler = CosineAnnealingWarmupLR(optimizer, warmup_steps=10, total_steps=gpc.config.NUM_EPOCHS)
 
     engine, train_dataloader, test_dataloader, _ = colossalai.initialize(
@@ -80,10 +80,8 @@ def main():
         # return data and label
         return dict(x1=x1, x2=x2), img_cls
 
-    schedule = NonPipelineSchedule(batch_data_process_func=process_batch_data)
-
     # build trainer
-    trainer = Trainer(engine=engine, logger=logger, timer=timer, schedule=schedule)
+    trainer = Trainer(engine=engine, logger=logger, timer=timer)
 
     # build hooks
     hook_list = [

@@ -1,5 +1,7 @@
 # Sequence Parallel BERT
 
+![Still In Progress](https://img.shields.io/badge/-Still%20In%20Progress-orange)
+
 In this example, we implemented BERT with sequence parallelism. Sequence parallelism splits the input tensor and intermediate 
 activation along the sequence dimension. This method can achieve better memory efficiency and allows us to train with larger batch size and longer sequence length.
 
@@ -21,7 +23,7 @@ mkdir data && cd ./data
 wget https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2
 
 # install wiki extractor
-git clone https://github.com/attardi/wikiextractor.git 
+git clone https://github.com/FrankLeeeee/wikiextractor.git
 pip install ./wikiextractor
 
 # extractmodule 
@@ -91,7 +93,7 @@ steps to perform.
 
 ### Step 1. Set data path and vocab path
 
-At the top of `train.py`, you can see two global variables `DATA_PATH` and `VOCAB_FILE_PATH`. 
+At the top of `config.py`, you can see two global variables `DATA_PATH` and `VOCAB_FILE_PATH`. 
 
 ```python
 DATA_PATH = <data-path>
@@ -122,7 +124,7 @@ make
 
 In the `config.py` provided, a set of parameters are defined including training scheme, model, etc.
 You can also modify the ColossalAI setting. For example, if you wish to parallelize over the 
-sequence diemsnion on 8 GPUs. You can change `size=4` to `size=8`. If you wish to use pipeline parallelism, you can set `pipeline=<num_of_pipeline_stages>`.
+sequence dimension on 8 GPUs. You can change `size=4` to `size=8`. If you wish to use pipeline parallelism, you can set `pipeline=<num_of_pipeline_stages>`.
 
 ### Step 4. Invoke parallel training
 
