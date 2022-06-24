@@ -13,7 +13,7 @@ from colossalai.utils import colo_set_process_memory_fraction, get_current_devic
 from colossalai.utils.model.colo_init_context import ColoInitContext
 from colossalai.nn._ops import *
 from colossalai.nn.parallel.layers import init_colo_module
-from colossalai.tensor import TensorSpec, ComputePattern, ParallelAction, ChunkManager
+from colossalai.tensor import TensorSpec, ComputePattern, ComputeSpec, ChunkManager
 from colossalai.gemini.gemini_mgr import GeminiManager
 from colossalai.nn.parallel import ZeroDDP
 from colossalai.nn.optimizer import HybridAdam
@@ -42,18 +42,19 @@ def main():
     )
 
     logger.info('Build model', ranks=[0])
-    use_zero = False
+    use_zero = True
 
     with ColoInitContext(device=get_current_device()):
         model = build_model()
         
-    parallel_action = ParallelAction(ComputePattern.TP1D)
-    init_colo_module(model, parallel_action, recursive=True, mode='col')
+    compute_spec = ComputeSpec(ComputePattern.TP1D)
+    init_colo_module(model, compute_spec, recursive=True, mode='col')
 
     # TODO(jzy) Add ZERO
-    use_chunk = False
+    use_chunk = True
     placement_policy = 'cuda'
-    optimizer_class = torch.optim.AdamW
+    optimizer_class = HybridAdam
+    lr = gpc.config.LR
     if use_zero:
         chunk_size = ChunkManager.search_chunk_size(model, 8192, 8) if use_chunk else None
         chunk_manager = ChunkManager(chunk_size,
@@ -61,16 +62,18 @@ def main():
                                     init_device=GeminiManager.get_default_device(placement_policy))
         gemini_manager = GeminiManager(placement_policy, chunk_manager)
         model = ZeroDDP(model, gemini_manager)
-        optimizer = optimizer_class(model.parameters(), lr=1e-3)
+        optimizer = optimizer_class(model.parameters(), lr=lr, weight_decay=1e-2, adamw_mode=True)
         optimizer = ZeroOptimizer(optimizer, model, initial_scale=32)
     else:
-        optimizer = optimizer_class(model.parameters(), lr=5e-5, weight_decay=1e-2)
+        optimizer = optimizer_class(model.parameters(), lr=lr, weight_decay=1e-2, adamw_mode=True)
 
     numel = calc_local_model_size(model)
     criterion = nn.CrossEntropyLoss()
     logger.info('Build optimizer', ranks=[0])
 
-    lr_scheduler = LinearWarmupLR(optimizer, total_steps=gpc.config.NUM_EPOCHS * len(train_dataloader), warmup_steps=gpc.config.WARMUP_EPOCHS)
+    total_steps = gpc.config.NUM_EPOCHS * len(train_dataloader)
+    warmup_proportion = gpc.config.WARMUP_PROPORTION
+    lr_scheduler = LinearWarmupLR(optimizer, total_steps=total_steps, warmup_steps=total_steps * warmup_proportion)
 
     global_batch_size = gpc.config.BATCH_SIZE * \
         gpc.get_world_size(ParallelMode.DATA) * getattr(gpc.config, "gradient_accumulation", 1)
