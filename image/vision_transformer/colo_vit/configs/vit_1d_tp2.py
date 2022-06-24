@@ -27,5 +27,6 @@ parallel = dict(tensor=dict(mode="1d", size=TP_WORLD_SIZE),)
 
 fp16 = dict(mode=AMP_TYPE.NAIVE)
 clip_grad_norm = 1.0
+gradient_accumulation = 8
 
 LOG_PATH = "./log"

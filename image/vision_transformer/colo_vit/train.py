@@ -4,6 +4,7 @@ import colossalai
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.distributed as dist
 import colossalai.utils as utils
 from colossalai.utils import colo_set_process_memory_fraction, get_current_device, MultiTimer
 from colossalai.utils.model.colo_init_context import ColoInitContext
@@ -19,7 +20,7 @@ from colossalai.nn.parallel import ZeroDDP
 from colossalai.nn.parallel.data_parallel import ColoDDP
 from colossalai.zero import ZeroOptimizer
 from colossalai.trainer import Trainer, hooks
-from colossalai.tensor import TensorSpec, ComputePattern, ParallelAction, DistSpecManager, distspec, ChunkManager
+from colossalai.tensor import TensorSpec, ComputePattern, ComputeSpec, DistSpecManager, distspec, ChunkManager
 from colossalai.gemini.gemini_mgr import GeminiManager
 from titans.dataloader.imagenet import build_dali_imagenet
 from timm.models.vision_transformer import _create_vision_transformer
@@ -30,20 +31,20 @@ def init_spec_func(model, tp_type):
     if tp_type == 'row':
         spec = TensorSpec(
             distspec.shard(gpc.get_group(ParallelMode.PARALLEL_1D), [-1],
-                           [gpc.get_world_size(ParallelMode.PARALLEL_1D)]), ParallelAction(ComputePattern.TP1D))
+                           [gpc.get_world_size(ParallelMode.PARALLEL_1D)]), ComputeSpec(ComputePattern.TP1D))
         with DistSpecManager.no_grad():
             for n, p in model.named_parameters():
                 if 'weight' in n and 'norm' not in n and 'patch_embed.proj.weight' not in n:
-                    p.set_spec(spec)
+                    p.set_tensor_spec(spec)
     elif tp_type == 'col':
         spec = TensorSpec(
             distspec.shard(gpc.get_group(ParallelMode.PARALLEL_1D), [0],
-                           [gpc.get_world_size(ParallelMode.PARALLEL_1D)]), ParallelAction(ComputePattern.TP1D))
+                           [gpc.get_world_size(ParallelMode.PARALLEL_1D)]), ComputeSpec(ComputePattern.TP1D))
         with DistSpecManager.no_grad():
             for n, p in model.named_parameters():
                 if ('weight' in n or 'bias' in n) and 'norm' not in n and ('patch_embed.proj.weight' not in n
                                                                            and 'patch_embed.proj.bias' not in n):
-                    p.set_spec(spec)
+                    p.set_tensor_spec(spec)
     else:
         raise NotImplemented
 
@@ -52,6 +53,8 @@ def train_imagenet():
 
     parser = colossalai.get_default_parser()
     parser.add_argument('--from_torch', default=True, action='store_true')
+    parser.add_argument('--resume_from', default=False)
+
     args = parser.parse_args()
     colossalai.launch_from_torch(config=args.config)
     use_ddp = gpc.config.USE_DDP
@@ -83,6 +86,8 @@ def train_imagenet():
                         num_classes=gpc.config.NUM_CLASSES,
                         weight_init='jax')
 
+    print(args.resume_from)
+
     use_chunk = True
     use_zero = True
     placement_policy = 'cuda'
@@ -107,21 +112,62 @@ def train_imagenet():
                                            warmup_steps=gpc.config.WARMUP_EPOCHS)
 
     start_epoch = 0
+    start_epoch_tensor = torch.tensor(start_epoch).cuda()
+
+    # if epoch % 10 == 0:
+    # state = {
+    #     'epoch' : epoch,
+    #     'model' : model.state_dict()
+    # }
+    # if dist.get_rank() == 0:
+    #     torch.save(state, './checkpoint/epoch_{}_model.pth'.format(epoch))
+    # torch.save(optimizer.state_dict(), 'checkpoint/epoch_{}_optim_rank_{}.pth'.format(epoch, dist.get_rank()))
+
+    if args.resume_from:
+        if dist.get_rank() == 0:
+            load_model = torch.load(args.resume_from + '_model.pth')
+            start_epoch_tensor = torch.tensor(load_model['epoch']).cuda()
+            model.load_state_dict(load_model['model'])
+
+        dist.broadcast(start_epoch_tensor, 0)
+
+        # print("load from")
+        # print(args.resume_from+'_optim_rank_{}.pth'.format(dist.get_rank()))
+        load_optim = torch.load(args.resume_from + '_optim_rank_{}.pth'.format(dist.get_rank()))
+        optimizer.load_state_dict(load_optim['optim'])
+
+        start_epoch = start_epoch_tensor.item()
+
+    # if args.resume_from:
+    #     load_model = torch.load(args.resume_from+'_model.pth')
+    #     start_epoch_tensor = load_model['epoch']
+    #     model.load_state_dict(load_model['model'])
+    #     load_optim = torch.load(args.resume_from+'_optim_rank_{}.pth'.format(dist.get_rank()))
+    #     optimizer.load_state_dict(load_optim)
+
     for epoch in range(start_epoch, gpc.config.NUM_EPOCHS):
         model.train()
         for index, (x, y) in tqdm(enumerate(train_dataloader), total=len(train_dataloader), leave=False):
+            # if use_ddp:
+            #     model.zero_grad()
+            # else:
+            #     optimizer.zero_grad()
+
             x, y = x.cuda(), y.cuda()
-            if use_ddp:
-                model.zero_grad()
-            else:
-                optimizer.zero_grad()
             output = model(x)
             loss = criterion(output, y)
             if use_ddp:
                 model.backward(loss)
             else:
                 loss.backward()
-            optimizer.step()
+            if index % gpc.config.gradient_accumulation == 0:
+                optimizer.step()
+                if use_ddp:
+                    model.zero_grad()
+                else:
+                    optimizer.zero_grad()
+            if index > 10:
+                break
 
         logger.info(
             f"Finish Train Epoch [{epoch+1}/{gpc.config.NUM_EPOCHS}] loss: {loss.item():.3f} lr: {optimizer.state_dict()['param_groups'][0]['lr']}",
@@ -139,6 +185,9 @@ def train_imagenet():
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(y.view_as(pred)).sum().item()
                 test_sum += y.size(0)
+                if index > 10:
+                    break
+
         test_loss /= test_sum
         logger.info(
             f"Finish Test Epoch [{epoch+1}/{gpc.config.NUM_EPOCHS}] loss: {test_loss:.3f} Accuracy: [{correct}/{test_sum}]({correct/test_sum:.3f})",
@@ -146,14 +195,15 @@ def train_imagenet():
 
         lr_scheduler.step()
 
-        state = {
-            'epoch': epoch,
-            'state_dict': model.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            'lr_scheduler': lr_scheduler.state_dict()
-        }
         if epoch % 10 == 0:
-            torch.save(state, './checkpoint/epoch_{epoch}.pth')
+            state = {'epoch': epoch, 'model': model.state_dict()}
+            if dist.get_rank() == 0:
+                torch.save(state, './checkpoint/epoch_{}_model.pth'.format(epoch))
+            # if dist.get_rank() == 0:
+            #     torch.save(model.state_dict(), './checkpoint/epoch_{}_model.pth'.format(epoch))
+
+            optim_state = {'optim': optimizer.state_dict()}
+            torch.save(optim_state, 'checkpoint/epoch_{}_optim_rank_{}.pth'.format(epoch, dist.get_rank()))
 
 
 if __name__ == '__main__':
