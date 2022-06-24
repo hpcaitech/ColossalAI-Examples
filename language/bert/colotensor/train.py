@@ -50,7 +50,6 @@ def main():
     compute_spec = ComputeSpec(ComputePattern.TP1D)
     init_colo_module(model, compute_spec, recursive=True, mode='col')
 
-    # TODO(jzy) Add ZERO
     use_chunk = True
     placement_policy = 'cuda'
     optimizer_class = HybridAdam
