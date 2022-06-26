@@ -34,4 +34,3 @@ clip_grad_norm = 1.0
 
 # pipeline config
 NUM_MICRO_BATCHES = parallel['pipeline']
-TENSOR_SHAPE = (BATCH_SIZE // NUM_MICRO_BATCHES, SEQ_LENGTH, HIDDEN_SIZE)
