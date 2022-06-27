@@ -66,7 +66,8 @@ def train_imagenet():
 
     # create dataloader
     root = os.environ['DATA']
-    train_dataloader, test_dataloader = build_dali_imagenet(root, rand_augment=False)
+    train_dataloader, test_dataloader = build_dali_imagenet(root, train_batch_size=gpc.config.BATCH_SIZE, \
+                                                            test_batch_size=gpc.config.BATCH_SIZE)
 
     # create loss function
     criterion = CrossEntropyLoss(label_smoothing=0.1)

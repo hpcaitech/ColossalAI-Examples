@@ -5,7 +5,6 @@ from torch.optim import Adam
 from colossalai.amp import AMP_TYPE
 import torch
 
-
 BATCH_SIZE = 8
 NUM_EPOCHS = 60
 SEQ_LEN = 1024
@@ -14,17 +13,11 @@ NUM_MICRO_BATCHES = 4
 HIDDEN_SIZE = 768
 PIPELINE = 2
 TENSOR_PARALLEL = 2
-MODE  = '1d'
-TENSOR_SHAPE = (BATCH_SIZE // NUM_MICRO_BATCHES, SEQ_LEN, HIDDEN_SIZE)
+MODE = '1d'
 
-fp16 = dict(
-    mode=AMP_TYPE.NAIVE
-)
+fp16 = dict(mode=AMP_TYPE.NAIVE)
 
-parallel = dict(
-    pipeline=PIPELINE,
-    tensor=dict(mode=MODE, size=TENSOR_PARALLEL)
-)
+parallel = dict(pipeline=PIPELINE, tensor=dict(mode=MODE, size=TENSOR_PARALLEL))
 
 optimizer = dict(
     type=Adam,

@@ -71,8 +71,8 @@ def train_imagenet():
 
     # create dataloaders
     root = os.environ['DATA']
-    train_dataloader, test_dataloader = build_dali_imagenet(root, rand_augment=False)
-
+    train_dataloader, test_dataloader = build_dali_imagenet(root, train_batch_size=gpc.config.BATCH_SIZE, \
+                                                            test_batch_size=gpc.config.BATCH_SIZE)
     # create loss function
     criterion = CrossEntropyLoss(label_smoothing=0.1)
 
@@ -92,7 +92,6 @@ def train_imagenet():
                                                                          test_dataloader=test_dataloader)
 
     logger.info("Engine is built", ranks=[0])
-
     # create schedule
     schedule = None
     tensor_shape = getattr(gpc.config, 'TENSOR_SHAPE', None)
