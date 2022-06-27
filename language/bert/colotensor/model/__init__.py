@@ -1,6 +1,6 @@
 from language.bert.colotensor.model.hfmodel import ModelFromHF
 from colossalai.core import global_context as gpc
-from transformers import BertConfig, BertForMaskedLM
+from transformers import BertConfig, BertForPreTraining
 
 _bert_base = dict(
     seq_length=512,
@@ -40,7 +40,7 @@ def build_model():
                           max_position_embeddings=model_cfg['seq_length'],
                           use_cache=not gpc.config.model.get('checkpoint', False))
 
-    model = ModelFromHF(bert_cfg, BertForMaskedLM)
+    model = ModelFromHF(bert_cfg, BertForPreTraining)
 
     return model
 
