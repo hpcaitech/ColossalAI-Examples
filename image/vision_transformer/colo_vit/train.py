@@ -8,6 +8,7 @@ import torch.distributed as dist
 import colossalai.utils as utils
 from colossalai.utils import colo_set_process_memory_fraction, get_current_device, MultiTimer
 from colossalai.utils.model.colo_init_context import ColoInitContext
+from colossalai.utils.model.colo_init_context import colo_state_dict
 from colossalai.context import ParallelMode
 from colossalai.core import global_context as gpc
 from colossalai.logging import disable_existing_loggers, get_dist_logger
@@ -84,16 +85,18 @@ def train_imagenet():
                         num_heads=gpc.config.NUM_HEADS,
                         mlp_ratio=gpc.config.MLP_RATIO,
                         num_classes=gpc.config.NUM_CLASSES,
+                        drop_rate=0.1,
+                        attn_drop_rate=0.1,
                         weight_init='jax')
 
-    print(args.resume_from)
-
-    use_chunk = True
-    use_zero = True
+    # TODO: ZeroDDP is not supported at present
+    use_chunk = False
+    use_zero = False
     placement_policy = 'cuda'
     with ColoInitContext(device=get_current_device()):
         model = _create_vision_transformer('vit_small_patch16_224', pretrained=False, **model_kwargs)
-    model = model.cuda().half()
+    # model = model.cuda().half()
+    model = model.cuda()
     init_spec_func(model, gpc.config.TP_TYPE)
     chunk_size = ChunkManager.search_chunk_size(model, 8192, 8) if use_chunk else None
     chunk_manager = ChunkManager(chunk_size,
@@ -101,73 +104,42 @@ def train_imagenet():
                                  init_device=GeminiManager.get_default_device(placement_policy))
     gemini_manager = GeminiManager(placement_policy, chunk_manager)
 
-    model = ZeroDDP(model, gemini_manager)
+    # model = ZeroDDP(model, gemini_manager)
+    model = ColoDDP(model)
 
     logger.info('Build criterion, optimizer, lr_scheduler', ranks=[0])
-    criterion = CrossEntropyLoss(label_smoothing=0.1)
     optimizer = HybridAdam(model.parameters(), lr=gpc.config.LEARNING_RATE, weight_decay=gpc.config.WEIGHT_DECAY)
-    optimizer = ZeroOptimizer(optimizer, model, initial_scale=32)
+    # optimizer = ZeroOptimizer(optimizer, model, initial_scale=32)
+    criterion = CrossEntropyLoss()
     lr_scheduler = CosineAnnealingWarmupLR(optimizer=optimizer,
                                            total_steps=gpc.config.NUM_EPOCHS,
                                            warmup_steps=gpc.config.WARMUP_EPOCHS)
 
     start_epoch = 0
-    start_epoch_tensor = torch.tensor(start_epoch).cuda()
-
-    # if epoch % 10 == 0:
-    # state = {
-    #     'epoch' : epoch,
-    #     'model' : model.state_dict()
-    # }
-    # if dist.get_rank() == 0:
-    #     torch.save(state, './checkpoint/epoch_{}_model.pth'.format(epoch))
-    # torch.save(optimizer.state_dict(), 'checkpoint/epoch_{}_optim_rank_{}.pth'.format(epoch, dist.get_rank()))
-
     if args.resume_from:
-        if dist.get_rank() == 0:
-            load_model = torch.load(args.resume_from + '_model.pth')
-            start_epoch_tensor = torch.tensor(load_model['epoch']).cuda()
-            model.load_state_dict(load_model['model'])
-
-        dist.broadcast(start_epoch_tensor, 0)
-
-        # print("load from")
-        # print(args.resume_from+'_optim_rank_{}.pth'.format(dist.get_rank()))
+        load_model = torch.load(args.resume_from + '_model.pth')
+        start_epoch = load_model['epoch']
+        model.load_state_dict(load_model['model'])
         load_optim = torch.load(args.resume_from + '_optim_rank_{}.pth'.format(dist.get_rank()))
         optimizer.load_state_dict(load_optim['optim'])
-
-        start_epoch = start_epoch_tensor.item()
-
-    # if args.resume_from:
-    #     load_model = torch.load(args.resume_from+'_model.pth')
-    #     start_epoch_tensor = load_model['epoch']
-    #     model.load_state_dict(load_model['model'])
-    #     load_optim = torch.load(args.resume_from+'_optim_rank_{}.pth'.format(dist.get_rank()))
-    #     optimizer.load_state_dict(load_optim)
 
     for epoch in range(start_epoch, gpc.config.NUM_EPOCHS):
         model.train()
         for index, (x, y) in tqdm(enumerate(train_dataloader), total=len(train_dataloader), leave=False):
-            # if use_ddp:
-            #     model.zero_grad()
-            # else:
-            #     optimizer.zero_grad()
-
             x, y = x.cuda(), y.cuda()
             output = model(x)
             loss = criterion(output, y)
+            loss = loss / gpc.config.gradient_accumulation
             if use_ddp:
                 model.backward(loss)
             else:
                 loss.backward()
-            if index % gpc.config.gradient_accumulation == 0:
+            if (index + 1) % gpc.config.gradient_accumulation == 0:
                 optimizer.step()
                 if use_ddp:
                     model.zero_grad()
                 else:
                     optimizer.zero_grad()
-            if index > 10:
-                break
 
         logger.info(
             f"Finish Train Epoch [{epoch+1}/{gpc.config.NUM_EPOCHS}] loss: {loss.item():.3f} lr: {optimizer.state_dict()['param_groups'][0]['lr']}",
@@ -185,8 +157,6 @@ def train_imagenet():
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(y.view_as(pred)).sum().item()
                 test_sum += y.size(0)
-                if index > 10:
-                    break
 
         test_loss /= test_sum
         logger.info(
@@ -196,12 +166,9 @@ def train_imagenet():
         lr_scheduler.step()
 
         if epoch % 10 == 0:
-            state = {'epoch': epoch, 'model': model.state_dict()}
+            state = {'epoch': epoch, 'model': colo_state_dict(model, state_dict_func=nn.Module.state_dict)}
             if dist.get_rank() == 0:
                 torch.save(state, './checkpoint/epoch_{}_model.pth'.format(epoch))
-            # if dist.get_rank() == 0:
-            #     torch.save(model.state_dict(), './checkpoint/epoch_{}_model.pth'.format(epoch))
-
             optim_state = {'optim': optimizer.state_dict()}
             torch.save(optim_state, 'checkpoint/epoch_{}_optim_rank_{}.pth'.format(epoch, dist.get_rank()))
 
