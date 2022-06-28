@@ -10,7 +10,18 @@ More details can be found in our [documentation](https://www.colossalai.org/docs
 
 ## Pretraining
 
-details to be added.
+### Data Preparation
+
+You need to follow the [documentation](../preprocessing/README.md) in the `preprocessing folder` to preprocess the WikiPedia dataset.
+You should obtain a `wikipedia` folder. Use symbolic link to link it to the current directory (i.e. `ln -s ../preprocessing/wikipedia/pretrain ./pretrain_data` )
+
+### Execute Pretraining
+
+Use the command below to start pretraining. If you want to do multi-node training, you can refer to the [documentation on how to launch multi-node training](https://www.colossalai.org/docs/basics/launch_colossalai).
+
+```bash
+bash ./scripts/run_pretrain.sh
+```
 
 ## Fine-tuning
 

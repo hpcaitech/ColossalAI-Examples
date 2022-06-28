@@ -15,6 +15,8 @@ from colossalai.nn.optimizer import FusedAdam
 from colossalai.nn.lr_scheduler import LinearWarmupLR
 from colossalai.utils import get_dataloader
 from transformers import BertForSequenceClassification
+from colossalai.context import ParallelMode
+from colossalai.tensor import TensorSpec, ComputePattern, ParallelAction, DistSpecManager, distspec
 
 __all__ = [
     'get_model', 'get_optimizer', 'get_lr_scheduler', 'get_train_dataloader', 'run_train', 'get_eval_dataloader',
@@ -269,3 +271,13 @@ def run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map
         eval_result = compute_metrics(args.task_name, preds, out_label_ids)
         results.update(eval_result)
         logger.info(results, ranks=[0])
+
+
+def init_1d_row_spec(model):
+    spec = TensorSpec(
+        distspec.shard(gpc.get_group(ParallelMode.PARALLEL_1D), [-1], [gpc.get_world_size(ParallelMode.PARALLEL_1D)]),
+        ParallelAction(ComputePattern.TP1D))
+    with DistSpecManager.no_grad():
+        for name, mod in model.named_modules():
+            if isinstance(mod, torch.nn.Linear) and 'classifier' not in name:
+                mod.weight.set_spec(spec)

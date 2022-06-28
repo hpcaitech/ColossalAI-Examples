@@ -1,12 +1,12 @@
 
 BERT_CONFIG_PATH='./configs/bert_base.json'
 PY_FILE_PATH='./pretraining/run_pretraining.py'
-DATA_PATH='./pretrain/phase1/unbinned/parquet'
+DATA_PATH='./pretrain_data/phase1/unbinned/parquet'
 VOCAB_FILE='bert-base-uncased'
 
 export PYTHONPATH=$PWD
 
-colossalai run --nproc_per_node 1 \
+colossalai run --nproc_per_node 8 \
     --master_port 29550 \
     $PY_FILE_PATH \
     --bert-config $BERT_CONFIG_PATH \

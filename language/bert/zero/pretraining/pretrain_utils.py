@@ -1,16 +1,16 @@
 import transformers
-import torch
-import lddl
 import logging
 from colossalai.nn.lr_scheduler import LinearWarmupLR
 from titans.dataloader.bert import get_bert_pretrain_data_loader
+from transformers import BertForPreTraining
+from colossalai.nn.optimizer import FusedAdam
 
 __all__ = ['get_model', 'get_optimizer', 'get_lr_scheduler', 'get_dataloader_for_pretraining']
 
 
 def get_model(config_file):
     config = transformers.BertConfig.from_json_file(config_file)
-    model = transformers.BertForPreTraining(config)
+    model = BertForPreTraining(config)
     return config, model
 
 
@@ -27,7 +27,7 @@ def get_optimizer(model, lr):
         'weight_decay': 0.0
     }]
 
-    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=lr)
+    optimizer = FusedAdam(optimizer_grouped_parameters, lr=lr)
     return optimizer
 
 
