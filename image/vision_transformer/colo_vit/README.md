@@ -40,8 +40,8 @@ This will evaluate models with different **world_size** and **use_ddp**.
 
 ## Training example
 Modify the settings in run.sh according to your environment, then in your terminal 
-'''shell
+```shell
 sh run.sh
-'''
+```
 
 This will start ViT-S training with ImageNet.
