@@ -33,4 +33,4 @@ bash ./run_clm.sh <batch-size-per-gpu> <mem-cap> <model> <gpu-num>
 - batch-size-per-gpu: number of samples fed to each GPU, default is 16
 - mem-cap: limit memory usage within a value in GB, default is 0 (no limit)
 - model: the size of the OPT model, default is `6.7b`. Acceptable values include `125m`, `350m`, `1.3b`, `2.7b`, `6.7`, `13b`, `30b`, `66b`.
-- gpu-num: the number of GPUs to use
+- gpu-num: the number of GPUs to use, default is 1.
