@@ -27,44 +27,10 @@ This training script is adapted from the [HuggingFace Language Modelling example
 You can invoke training by using the prepared bash script
 
 ```bash
-bash ./run_clm.sh
+bash ./run_clm.sh <batch-size-per-gpu> <mem-cap> <model> <gpu-num>
 ```
 
-```bash
-python run_clm.py \
-    --model_name_or_path gpt2 \
-    --dataset_name wikitext \
-    --dataset_config_name wikitext-2-raw-v1 \
-    --per_device_train_batch_size 8 \
-    --per_device_eval_batch_size 8 \
-    --do_train \
-    --do_eval \
-    --output_dir /tmp/test-clm
-```
-
-This takes about half an hour to train on a single K80 GPU and about one minute for the evaluation to run. It reaches
-a score of ~20 perplexity once fine-tuned on the dataset.
-
-To run on your own training and validation files, use the following command:
-
-```bash
-python run_clm.py \
-    --model_name_or_path gpt2 \
-    --train_file path_to_train_file \
-    --validation_file path_to_validation_file \
-    --per_device_train_batch_size 8 \
-    --per_device_eval_batch_size 8 \
-    --do_train \
-    --do_eval \
-    --output_dir /tmp/test-clm
-```
-
-This uses the built in HuggingFace `Trainer` for training. If you want to use a custom training loop, you can utilize or adapt the `run_clm_no_trainer.py` script. Take a look at the script for a list of supported arguments. An example is shown below:
-
-```bash
-python run_clm_no_trainer.py \
-    --dataset_name wikitext \
-    --dataset_config_name wikitext-2-raw-v1 \
-    --model_name_or_path gpt2 \
-    --output_dir /tmp/test-clm
-```
+- batch-size-per-gpu: number of samples fed to each GPU, default is 16
+- mem-cap: limit memory usage within a value in GB, default is 0 (no limit)
+- model: the size of the OPT model, default is `6.7b`. Acceptable values include `125m`, `350m`, `1.3b`, `2.7b`, `6.7`, `13b`, `30b`, `66b`.
+- gpu-num: the number of GPUs to use
