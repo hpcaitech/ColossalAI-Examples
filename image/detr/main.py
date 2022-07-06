@@ -28,15 +28,8 @@ def train_detr():
             logger.log_to_file(log_path)
 
     args = gpc.config
-    # print(args)
-    # assert False
     model, criterion, postprocessors = build_model(args=args)
     model.to(device)
-
-    # with open('orign_model.txt1', 'a') as f:
-    #     print(model, file=f)
-    #     print(sum(p.numel() for p in model.parameters() if p.requires_grad), file=f)
-    # exit()
 
     param_dicts = [
         {"params": [p for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]},
