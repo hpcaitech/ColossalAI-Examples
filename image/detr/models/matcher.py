@@ -7,7 +7,7 @@ from scipy.optimize import linear_sum_assignment
 from torch import nn
 
 from util.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
-from colossalai.registry import LAYERS, MODELS
+from colossalai.registry import LAYERS
 
 @LAYERS.register_module
 class HungarianMatcher(nn.Module):
@@ -65,7 +65,7 @@ class HungarianMatcher(nn.Module):
 
         # Compute the classification cost. Contrary to the loss, we don't use the NLL,
         # but approximate it in 1 - proba[target class].
-        # The 1 is a constant that doesn't change the matching, it can be omitted.
+        # The 1 is a constant that doesn't change the matching, it can be ommitted.
         cost_class = -out_prob[:, tgt_ids]
 
         # Compute the L1 cost between boxes

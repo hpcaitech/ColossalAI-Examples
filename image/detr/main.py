@@ -28,8 +28,15 @@ def train_detr():
             logger.log_to_file(log_path)
 
     args = gpc.config
+    # print(args)
+    # assert False
     model, criterion, postprocessors = build_model(args=args)
     model.to(device)
+
+    # with open('orign_model.txt1', 'a') as f:
+    #     print(model, file=f)
+    #     print(sum(p.numel() for p in model.parameters() if p.requires_grad), file=f)
+    # exit()
 
     param_dicts = [
         {"params": [p for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]},
@@ -53,8 +60,8 @@ def train_detr():
     base_ds = get_coco_api_from_dataset(dataset_val)
 
     optimizer = torch.optim.AdamW(param_dicts, lr=gpc.config.LEARNING_RATE, weight_decay=gpc.config.WEIGHT_DECAY)
-    lr_scheduler = CosineAnnealingWarmupLR(optimizer=optimizer, total_steps=gpc.config.NUM_EPOCHS, warmup_steps=gpc.config.WARMUP_EPOCHS)
-
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, gpc.config.lr_drop)
+    
     engine, train_dataloader, val_dataloader, _ = colossalai.initialize(model=model,
                                                                         optimizer=optimizer,
                                                                         criterion=criterion,
@@ -63,11 +70,15 @@ def train_detr():
 
     for epoch in range(gpc.config.NUM_EPOCHS):
         engine.train()
+        logger.info(len(train_dataloader), ranks=[0])
+        c = 0
         for samples, targets in train_dataloader:
             samples = samples.to(device)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
             outputs = model(samples)
+            
             loss_dict = criterion(outputs, targets)
+           
             weight_dict = criterion.weight_dict
             losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
@@ -78,6 +89,10 @@ def train_detr():
 
             loss_value = losses_reduced_scaled.item()
 
+            c += 1
+            if c % 10 == 0:
+                logger.info(loss_dict, ranks=[0])
+                logger.info(c, ranks=[0])
             engine.zero_grad()
             engine.backward(losses)
             if args.clip_max_norm > 0:
@@ -123,11 +138,3 @@ def train_detr():
 
 if __name__ == '__main__':
     train_detr()
-
-
-
-
-
-
-
-
