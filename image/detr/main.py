@@ -83,7 +83,7 @@ def train_detr():
             loss_value = losses_reduced_scaled.item()
 
             c += 1
-            if c % 10 == 0:
+            if c % 1000 == 0:
                 logger.info(loss_dict, ranks=[0])
                 logger.info(c, ranks=[0])
             engine.zero_grad()
