@@ -1,7 +1,5 @@
 # Overview
 
-![Still In Progress](https://img.shields.io/badge/-Still%20In%20Progress-orange)
-
 MoE is a new technique to enlarge neural networks while keeping the same throughput in our training. 
 It is designed to improve the performance of our models without any additional time penalty. Our old 
 version moe parallelism will cause a moderate computation overhead and additional memory usage. But

@@ -16,8 +16,8 @@ from colossalai.trainer.hooks import (AccuracyHook, LogMemoryByEpochHook,
                                       LRSchedulerHook, ThroughputHook)
 from colossalai.utils import MultiTimer, get_dataloader
 from colossalai.nn.loss import MoeCrossEntropyLoss
-from model_zoo.moe.models import Widenet, ViTMoE
-from colossalai.core import MOE_CONTEXT
+from titans.model.moe import Widenet, ViTMoE
+from colossalai.context import MOE_CONTEXT
 
 DATASET_PATH = str(os.environ['DATA'])  # The directory of your dataset
 
@@ -43,9 +43,9 @@ def build_cifar(batch_size):
     train_dataloader = get_dataloader(dataset=train_dataset,
                                       shuffle=True,
                                       batch_size=batch_size,
-                                      num_workers=4,
+                                      num_workers=0,
                                       pin_memory=True)
-    test_dataloader = get_dataloader(dataset=test_dataset, batch_size=batch_size, num_workers=4, pin_memory=True)
+    test_dataloader = get_dataloader(dataset=test_dataset, batch_size=batch_size, num_workers=0, pin_memory=True)
     return train_dataloader, test_dataloader
 
 
@@ -70,7 +70,7 @@ def train_cifar():
         patch_size=4,
         num_classes=10,
         depth=6,
-        d_model=256,
+        hidden_size=256,
         num_heads=4,
         d_kv=64,
         d_ff=512
