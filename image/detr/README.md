@@ -1,38 +1,46 @@
-# colossal_detr
-Reproduce the DETR model with ColossalAI
+# DEtection TRansformer (DETR) on Colossal-AI
 
-## Background
-This project is the reproduction of [DETR model](https://arxiv.org/abs/2005.12872) with [ColossalAI](https://github.com/hpcaitech/ColossalAI) tool.
+## Requirement
 
-## Environment setup
-```
-git clone https://github.com/hpcaitech/ColossalAI.git
-cd ColossalAI
-# install dependency
-pip install -r requirements/requirements.txt
+You should install colossalai from the **latest** main branch.
 
-# install colossalai
-pip install .
-```
+---
 
 ## How to run
-```
-$ DATA=/path/to/data/ python -m torch.distributed.launch --nproc_per_node=nproc_per_node
-                                                         --master_addr MASTER_ADDR
-                                                         --master_port MASTER_PORT
-                                                         run_train.py
-                                                         --config=CONFIG_FILE
-                                                         --world_size=WORLD_SIZE
-                                                         --rank=RANK
-                                                         --local_rank=LOCAL_RANK
+
+On a single server, you can directly use torch.distributed to start pre-training on multiple GPUs in parallel. In Colossal-AI, we provided several launch methods to init the distributed backend. You can use `colossalai.launch` and `colossalai.get_default_parser` to pass the parameters via command line. If you happen to use launchers such as SLURM, OpenMPI and PyTorch launch utility, you can use `colossalai.launch_from_<torch/slurm/openmpi>` to read rank and world size from the environment variables directly for convenience. 
+
+Before running, you should `export DATA=/path/to/coco`.
+
+In your terminal
+```shell
+colossalai run --nproc_per_node <world_size> main.py --config config.py
 ```
 
-## Cite us
-```
-@article{bian2021colossal,
-  title={Colossal-AI: A Unified Deep Learning System For Large-Scale Parallel Training},
-  author={Bian, Zhengda and Liu, Hongxin and Wang, Boxiang and Huang, Haichen and Li, Yongbin and Wang, Chuanrui and Cui, Fan and You, Yang},
-  journal={arXiv preprint arXiv:2110.14883},
-  year={2021}
-}
-```
+---
+
+
+## Details
+`config.py`
+
+Containing configurations for DETR.
+
+`main.py`
+
+Engine is called through this file to start the training process using Colossal-AI.
+
+`engine.py`
+
+Process training and evaluating procedures about DETR.
+
+`./datasets`
+
+Dataset proprocessings.
+
+`./models`
+
+Model specifications of DETR model. Containing Transformer and Backbone implementations. 
+
+`./util`
+
+Utilities used in DETR.

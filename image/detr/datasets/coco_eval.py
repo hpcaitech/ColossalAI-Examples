@@ -32,6 +32,7 @@ class CocoEvaluator(object):
         for iou_type in self.iou_types:
             results = self.prepare(predictions, iou_type)
 
+            # suppress pycocotools prints
             with open(os.devnull, 'w') as devnull:
                 with contextlib.redirect_stdout(devnull):
                     coco_dt = COCO.loadRes(self.coco_gt, results) if results else COCO()
@@ -54,7 +55,7 @@ class CocoEvaluator(object):
 
     def summarize(self):
         for iou_type, coco_eval in self.coco_eval.items():
-            # print("IoU metric: {}".format(iou_type))
+            print("IoU metric: {}".format(iou_type))
             coco_eval.summarize()
 
     def prepare(self, predictions, iou_type):
@@ -97,8 +98,8 @@ class CocoEvaluator(object):
             if len(prediction) == 0:
                 continue
 
-            # scores = prediction["scores"]
-            # labels = prediction["labels"]
+            scores = prediction["scores"]
+            labels = prediction["labels"]
             masks = prediction["masks"]
 
             masks = masks > 0.5
@@ -173,6 +174,7 @@ def merge(img_ids, eval_imgs):
     merged_img_ids = np.array(merged_img_ids)
     merged_eval_imgs = np.concatenate(merged_eval_imgs, 2)
 
+    # keep only unique (and in sorted order) images
     merged_img_ids, idx = np.unique(merged_img_ids, return_index=True)
     merged_eval_imgs = merged_eval_imgs[..., idx]
 
@@ -198,7 +200,6 @@ def evaluate(self):
     if p.useSegm is not None:
         p.iouType = 'segm' if p.useSegm == 1 else 'bbox'
         print('useSegm (deprecated) is not None. Running {} evaluation'.format(p.iouType))
-    # print('Evaluate annotation type *{}*'.format(p.iouType))
     p.imgIds = list(np.unique(p.imgIds))
     if p.useCats:
         p.catIds = list(np.unique(p.catIds))
@@ -206,7 +207,6 @@ def evaluate(self):
     self.params = p
 
     self._prepare()
-
     catIds = p.catIds if p.useCats else [-1]
 
     if p.iouType == 'segm' or p.iouType == 'bbox':
@@ -229,5 +229,4 @@ def evaluate(self):
 
     evalImgs = np.asarray(evalImgs).reshape(len(catIds), len(p.areaRng), len(p.imgIds))
     self._paramsEval = copy.deepcopy(self.params)
-
     return p.imgIds, evalImgs
