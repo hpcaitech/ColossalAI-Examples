@@ -1,0 +1,507 @@
+========== Your Config ========
+{'BATCH_SIZE': 16,
+ 'LEARNING_RATE': 0.002,
+ 'LOG_PATH': './detr_1d_ai2d_tp2_bs16_lr0.002/',
+ 'NUM_EPOCHS': 800,
+ 'TENSOR_PARALLEL_MODE': '1d',
+ 'TENSOR_PARALLEL_SIZE': 2,
+ 'WARMUP_EPOCHS': 40,
+ 'WEIGHT_DECAY': 0.03,
+ 'backbone': 'resnet34',
+ 'bbox_loss_coef': 5,
+ 'clip_max_norm': 2.0,
+ 'coco_path': '/data/huxin/xjtuhx/projects/ai2d-detection-baselines/111/data_dir/ai2d/',
+ 'dataset_file': 'ai2d',
+ 'dec_layers': 2,
+ 'device': 'cuda',
+ 'dice_loss_coef': 1,
+ 'dilation': None,
+ 'dim_feedforward': 512,
+ 'dist_url': 'env://',
+ 'distributed': True,
+ 'dropout': 0.1,
+ 'enc_layers': 2,
+ 'eos_coef': 0.1,
+ 'eval': False,
+ 'find_unused_parameters': True,
+ 'giou_loss_coef': 2,
+ 'hidden_dim': 256,
+ 'lr_backbone': 1e-05,
+ 'lr_drop': 200,
+ 'mask_loss_coef': 1,
+ 'masks': False,
+ 'nheads': 1,
+ 'num_queries': 100,
+ 'num_workers': 0,
+ 'output_dir': '/data/huxin/xjtuhx/projects/ai2d-detection-baselines/111/output_test/',
+ 'parallel': {'pipeline': 1, 'tensor': {'mode': '1d', 'size': 2}},
+ 'position_embedding': 'sine',
+ 'remove_difficult': True,
+ 'resume': '',
+ 'save_ckpt_freq': 50,
+ 'seed': 77,
+ 'set_cost_bbox': 5,
+ 'set_cost_class': 1,
+ 'set_cost_giou': 2,
+ 'start_epoch': 0,
+ 'world_size': 1}
+================================
+
+colossalai - colossalai - 2022-02-22 11:43:04,353 INFO: cuDNN benchmark = True, deterministic = False
+colossalai - colossalai - 2022-02-22 11:43:04,504 INFO: Model is using torch.nn.parallel.DistributedDataParallel for Data Parallelism
+colossalai - colossalai - 2022-02-22 11:44:49,260 INFO: Epoch 0 - train loss: 10.517, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:45:13,572 INFO: Epoch 0 - eval loss: 10.99885368347168 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:46:46,435 INFO: Epoch 1 - train loss: 8.4099, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:46:54,989 INFO: Epoch 1 - eval loss: 9.051885604858398 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:48:19,489 INFO: Epoch 2 - train loss: 6.8337, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:48:28,829 INFO: Epoch 2 - eval loss: 7.44427490234375 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:49:49,850 INFO: Epoch 3 - train loss: 5.905, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:49:59,062 INFO: Epoch 3 - eval loss: 6.422027587890625 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:51:14,862 INFO: Epoch 4 - train loss: 5.5014, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:51:23,439 INFO: Epoch 4 - eval loss: 5.85852575302124 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:52:37,569 INFO: Epoch 5 - train loss: 5.2373, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:52:45,018 INFO: Epoch 5 - eval loss: 5.503910064697266 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:53:59,011 INFO: Epoch 6 - train loss: 5.1854, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:54:07,215 INFO: Epoch 6 - eval loss: 5.2689208984375 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:55:27,510 INFO: Epoch 7 - train loss: 5.0073, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:55:36,100 INFO: Epoch 7 - eval loss: 4.957440376281738 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:56:50,584 INFO: Epoch 8 - train loss: 5.0566, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:56:59,958 INFO: Epoch 8 - eval loss: 4.84383487701416 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:58:10,913 INFO: Epoch 9 - train loss: 4.9752, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:58:19,435 INFO: Epoch 9 - eval loss: 4.746517658233643 - class error: 100.0
+colossalai - colossalai - 2022-02-22 11:59:33,888 INFO: Epoch 10 - train loss: 4.7595, lr: 5e-05
+colossalai - colossalai - 2022-02-22 11:59:42,290 INFO: Epoch 10 - eval loss: 4.658164978027344 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:00:48,307 INFO: Epoch 11 - train loss: 4.8324, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:00:56,189 INFO: Epoch 11 - eval loss: 4.604168891906738 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:02:08,280 INFO: Epoch 12 - train loss: 4.7154, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:02:16,101 INFO: Epoch 12 - eval loss: 4.517608165740967 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:03:24,756 INFO: Epoch 13 - train loss: 4.6937, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:03:32,263 INFO: Epoch 13 - eval loss: 4.490669250488281 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:04:32,773 INFO: Epoch 14 - train loss: 4.6233, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:04:41,061 INFO: Epoch 14 - eval loss: 4.413984298706055 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:05:50,992 INFO: Epoch 15 - train loss: 4.5022, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:05:59,408 INFO: Epoch 15 - eval loss: 4.386911869049072 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:07:06,761 INFO: Epoch 16 - train loss: 4.6257, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:07:15,323 INFO: Epoch 16 - eval loss: 4.387699127197266 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:08:20,551 INFO: Epoch 17 - train loss: 4.5709, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:08:28,518 INFO: Epoch 17 - eval loss: 4.338793754577637 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:09:36,612 INFO: Epoch 18 - train loss: 4.6285, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:09:45,539 INFO: Epoch 18 - eval loss: 4.25981330871582 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:10:51,123 INFO: Epoch 19 - train loss: 4.4866, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:11:00,268 INFO: Epoch 19 - eval loss: 4.214930534362793 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:12:05,456 INFO: Epoch 20 - train loss: 4.5657, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:12:14,621 INFO: Epoch 20 - eval loss: 4.178381443023682 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:13:13,706 INFO: Epoch 21 - train loss: 4.5561, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:13:21,383 INFO: Epoch 21 - eval loss: 4.104997158050537 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:14:18,851 INFO: Epoch 22 - train loss: 4.4523, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:14:28,052 INFO: Epoch 22 - eval loss: 4.140244483947754 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:15:29,402 INFO: Epoch 23 - train loss: 4.4163, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:15:38,356 INFO: Epoch 23 - eval loss: 4.091095924377441 - class error: 99.28571319580078
+colossalai - colossalai - 2022-02-22 12:16:40,527 INFO: Epoch 24 - train loss: 4.3675, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:16:48,284 INFO: Epoch 24 - eval loss: 3.986572742462158 - class error: 99.28571319580078
+colossalai - colossalai - 2022-02-22 12:17:47,656 INFO: Epoch 25 - train loss: 4.4216, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:17:57,059 INFO: Epoch 25 - eval loss: 4.056926727294922 - class error: 100.0
+colossalai - colossalai - 2022-02-22 12:19:02,822 INFO: Epoch 26 - train loss: 4.4149, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:19:11,035 INFO: Epoch 26 - eval loss: 4.017450332641602 - class error: 98.92857360839844
+colossalai - colossalai - 2022-02-22 12:20:07,786 INFO: Epoch 27 - train loss: 4.3195, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:20:15,668 INFO: Epoch 27 - eval loss: 3.997525453567505 - class error: 98.21428680419922
+colossalai - colossalai - 2022-02-22 12:21:12,566 INFO: Epoch 28 - train loss: 4.2944, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:21:20,666 INFO: Epoch 28 - eval loss: 4.004399299621582 - class error: 98.21428680419922
+colossalai - colossalai - 2022-02-22 12:22:26,619 INFO: Epoch 29 - train loss: 4.2947, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:22:34,438 INFO: Epoch 29 - eval loss: 3.9084925651550293 - class error: 97.14285278320312
+colossalai - colossalai - 2022-02-22 12:23:28,860 INFO: Epoch 30 - train loss: 4.2839, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:23:37,645 INFO: Epoch 30 - eval loss: 3.8963823318481445 - class error: 98.57142639160156
+colossalai - colossalai - 2022-02-22 12:24:42,698 INFO: Epoch 31 - train loss: 4.2767, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:24:50,850 INFO: Epoch 31 - eval loss: 3.922703981399536 - class error: 96.07142639160156
+colossalai - colossalai - 2022-02-22 12:25:54,567 INFO: Epoch 32 - train loss: 4.3813, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:26:03,813 INFO: Epoch 32 - eval loss: 3.8752553462982178 - class error: 95.71428680419922
+colossalai - colossalai - 2022-02-22 12:26:58,820 INFO: Epoch 33 - train loss: 4.2606, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:27:06,394 INFO: Epoch 33 - eval loss: 3.839728355407715 - class error: 93.21428680419922
+colossalai - colossalai - 2022-02-22 12:28:03,279 INFO: Epoch 34 - train loss: 4.2818, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:28:12,345 INFO: Epoch 34 - eval loss: 3.8803319931030273 - class error: 93.25396728515625
+colossalai - colossalai - 2022-02-22 12:29:11,437 INFO: Epoch 35 - train loss: 4.3059, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:29:19,100 INFO: Epoch 35 - eval loss: 3.8155651092529297 - class error: 91.5079345703125
+colossalai - colossalai - 2022-02-22 12:30:16,744 INFO: Epoch 36 - train loss: 4.316, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:30:24,896 INFO: Epoch 36 - eval loss: 3.8346786499023438 - class error: 90.43650817871094
+colossalai - colossalai - 2022-02-22 12:31:24,481 INFO: Epoch 37 - train loss: 4.3396, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:31:32,863 INFO: Epoch 37 - eval loss: 3.728475570678711 - class error: 88.03571319580078
+colossalai - colossalai - 2022-02-22 12:32:31,358 INFO: Epoch 38 - train loss: 4.2216, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:32:39,872 INFO: Epoch 38 - eval loss: 3.832465410232544 - class error: 89.36508178710938
+colossalai - colossalai - 2022-02-22 12:33:40,961 INFO: Epoch 39 - train loss: 4.2214, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:33:49,697 INFO: Epoch 39 - eval loss: 3.76356840133667 - class error: 87.26190948486328
+colossalai - colossalai - 2022-02-22 12:34:40,700 INFO: Epoch 40 - train loss: 4.2466, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:34:48,212 INFO: Epoch 40 - eval loss: 3.679960250854492 - class error: 89.0079345703125
+colossalai - colossalai - 2022-02-22 12:35:42,839 INFO: Epoch 41 - train loss: 4.2642, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:35:50,465 INFO: Epoch 41 - eval loss: 3.7010674476623535 - class error: 86.54762268066406
+colossalai - colossalai - 2022-02-22 12:36:44,928 INFO: Epoch 42 - train loss: 4.2024, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:36:53,035 INFO: Epoch 42 - eval loss: 3.6651744842529297 - class error: 81.58729553222656
+colossalai - colossalai - 2022-02-22 12:37:46,953 INFO: Epoch 43 - train loss: 4.175, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:37:55,026 INFO: Epoch 43 - eval loss: 3.6274971961975098 - class error: 81.6468276977539
+colossalai - colossalai - 2022-02-22 12:38:49,532 INFO: Epoch 44 - train loss: 4.2328, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:38:57,921 INFO: Epoch 44 - eval loss: 3.6231586933135986 - class error: 81.96428680419922
+colossalai - colossalai - 2022-02-22 12:39:48,985 INFO: Epoch 45 - train loss: 4.195, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:39:57,726 INFO: Epoch 45 - eval loss: 3.652147054672241 - class error: 88.015869140625
+colossalai - colossalai - 2022-02-22 12:40:54,089 INFO: Epoch 46 - train loss: 4.2241, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:41:02,092 INFO: Epoch 46 - eval loss: 3.5979630947113037 - class error: 81.94444274902344
+colossalai - colossalai - 2022-02-22 12:41:56,809 INFO: Epoch 47 - train loss: 4.1503, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:42:06,200 INFO: Epoch 47 - eval loss: 3.6956849098205566 - class error: 85.4761962890625
+colossalai - colossalai - 2022-02-22 12:42:59,479 INFO: Epoch 48 - train loss: 4.0675, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:43:09,040 INFO: Epoch 48 - eval loss: 3.6338183879852295 - class error: 83.73015594482422
+colossalai - colossalai - 2022-02-22 12:44:02,417 INFO: Epoch 49 - train loss: 4.2463, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:44:11,595 INFO: Epoch 49 - eval loss: 3.619326591491699 - class error: 81.58729553222656
+colossalai - colossalai - 2022-02-22 12:45:05,032 INFO: Epoch 50 - train loss: 4.1643, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:45:13,952 INFO: Epoch 50 - eval loss: 3.6526286602020264 - class error: 82.34127044677734
+colossalai - colossalai - 2022-02-22 12:46:12,741 INFO: Epoch 51 - train loss: 4.1687, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:46:20,510 INFO: Epoch 51 - eval loss: 3.597801685333252 - class error: 81.6468276977539
+colossalai - colossalai - 2022-02-22 12:47:16,381 INFO: Epoch 52 - train loss: 4.1308, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:47:25,175 INFO: Epoch 52 - eval loss: 3.6015312671661377 - class error: 78.80952453613281
+colossalai - colossalai - 2022-02-22 12:48:16,501 INFO: Epoch 53 - train loss: 4.1879, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:48:25,266 INFO: Epoch 53 - eval loss: 3.6570286750793457 - class error: 82.02381134033203
+colossalai - colossalai - 2022-02-22 12:49:21,089 INFO: Epoch 54 - train loss: 4.0856, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:49:28,695 INFO: Epoch 54 - eval loss: 3.713226318359375 - class error: 77.40079498291016
+colossalai - colossalai - 2022-02-22 12:50:20,111 INFO: Epoch 55 - train loss: 4.0931, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:50:28,235 INFO: Epoch 55 - eval loss: 3.6026711463928223 - class error: 77.36111450195312
+colossalai - colossalai - 2022-02-22 12:51:30,992 INFO: Epoch 56 - train loss: 4.1123, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:51:40,624 INFO: Epoch 56 - eval loss: 3.5716981887817383 - class error: 77.3809585571289
+colossalai - colossalai - 2022-02-22 12:52:28,685 INFO: Epoch 57 - train loss: 4.0972, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:52:36,828 INFO: Epoch 57 - eval loss: 3.575860023498535 - class error: 82.69841003417969
+colossalai - colossalai - 2022-02-22 12:53:26,130 INFO: Epoch 58 - train loss: 4.104, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:53:34,843 INFO: Epoch 58 - eval loss: 3.537899971008301 - class error: 77.06349182128906
+colossalai - colossalai - 2022-02-22 12:54:22,220 INFO: Epoch 59 - train loss: 4.1506, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:54:31,249 INFO: Epoch 59 - eval loss: 3.6638054847717285 - class error: 79.12698364257812
+colossalai - colossalai - 2022-02-22 12:55:30,825 INFO: Epoch 60 - train loss: 4.1078, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:55:39,431 INFO: Epoch 60 - eval loss: 3.517484188079834 - class error: 76.34920501708984
+colossalai - colossalai - 2022-02-22 12:56:27,192 INFO: Epoch 61 - train loss: 4.0843, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:56:35,143 INFO: Epoch 61 - eval loss: 3.6196999549865723 - class error: 79.12698364257812
+colossalai - colossalai - 2022-02-22 12:57:23,104 INFO: Epoch 62 - train loss: 4.0704, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:57:31,058 INFO: Epoch 62 - eval loss: 3.59576416015625 - class error: 75.63491821289062
+colossalai - colossalai - 2022-02-22 12:58:20,874 INFO: Epoch 63 - train loss: 4.0346, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:58:28,610 INFO: Epoch 63 - eval loss: 3.5652642250061035 - class error: 77.04364776611328
+colossalai - colossalai - 2022-02-22 12:59:18,227 INFO: Epoch 64 - train loss: 3.9699, lr: 5e-05
+colossalai - colossalai - 2022-02-22 12:59:25,742 INFO: Epoch 64 - eval loss: 3.6110739707946777 - class error: 76.01190948486328
+colossalai - colossalai - 2022-02-22 13:00:17,596 INFO: Epoch 65 - train loss: 4.0374, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:00:25,380 INFO: Epoch 65 - eval loss: 3.538105010986328 - class error: 70.97222137451172
+colossalai - colossalai - 2022-02-22 13:01:17,876 INFO: Epoch 66 - train loss: 4.0147, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:01:26,450 INFO: Epoch 66 - eval loss: 3.528085231781006 - class error: 76.32936096191406
+colossalai - colossalai - 2022-02-22 13:02:14,473 INFO: Epoch 67 - train loss: 4.1487, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:02:22,048 INFO: Epoch 67 - eval loss: 3.633070945739746 - class error: 78.09524536132812
+colossalai - colossalai - 2022-02-22 13:03:11,722 INFO: Epoch 68 - train loss: 4.0556, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:03:19,817 INFO: Epoch 68 - eval loss: 3.5906941890716553 - class error: 77.77777862548828
+colossalai - colossalai - 2022-02-22 13:04:17,676 INFO: Epoch 69 - train loss: 4.0817, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:04:25,529 INFO: Epoch 69 - eval loss: 3.5326666831970215 - class error: 77.7579345703125
+colossalai - colossalai - 2022-02-22 13:05:13,530 INFO: Epoch 70 - train loss: 4.0164, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:05:21,494 INFO: Epoch 70 - eval loss: 3.6351211071014404 - class error: 76.34920501708984
+colossalai - colossalai - 2022-02-22 13:06:10,762 INFO: Epoch 71 - train loss: 4.0304, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:06:19,148 INFO: Epoch 71 - eval loss: 3.567225694656372 - class error: 77.06349182128906
+colossalai - colossalai - 2022-02-22 13:07:05,037 INFO: Epoch 72 - train loss: 4.0581, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:07:13,355 INFO: Epoch 72 - eval loss: 3.549680233001709 - class error: 76.32936096191406
+colossalai - colossalai - 2022-02-22 13:08:06,431 INFO: Epoch 73 - train loss: 4.0603, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:08:15,083 INFO: Epoch 73 - eval loss: 3.513218879699707 - class error: 72.83729553222656
+colossalai - colossalai - 2022-02-22 13:08:57,155 INFO: Epoch 74 - train loss: 4.0827, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:09:05,674 INFO: Epoch 74 - eval loss: 3.4577488899230957 - class error: 71.70635223388672
+colossalai - colossalai - 2022-02-22 13:09:47,595 INFO: Epoch 75 - train loss: 4.1154, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:09:55,849 INFO: Epoch 75 - eval loss: 3.5850400924682617 - class error: 76.32936096191406
+colossalai - colossalai - 2022-02-22 13:10:45,272 INFO: Epoch 76 - train loss: 3.9808, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:10:53,459 INFO: Epoch 76 - eval loss: 3.5464367866516113 - class error: 72.12301635742188
+colossalai - colossalai - 2022-02-22 13:11:44,010 INFO: Epoch 77 - train loss: 3.9745, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:11:51,818 INFO: Epoch 77 - eval loss: 3.516782283782959 - class error: 74.94047546386719
+colossalai - colossalai - 2022-02-22 13:12:44,033 INFO: Epoch 78 - train loss: 3.9224, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:12:52,283 INFO: Epoch 78 - eval loss: 3.582066297531128 - class error: 72.08333587646484
+colossalai - colossalai - 2022-02-22 13:13:36,745 INFO: Epoch 79 - train loss: 3.9609, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:13:44,289 INFO: Epoch 79 - eval loss: 3.547427177429199 - class error: 75.63491821289062
+colossalai - colossalai - 2022-02-22 13:14:38,398 INFO: Epoch 80 - train loss: 3.966, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:14:46,324 INFO: Epoch 80 - eval loss: 3.499423027038574 - class error: 75.2579345703125
+colossalai - colossalai - 2022-02-22 13:15:34,502 INFO: Epoch 81 - train loss: 4.0925, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:15:42,295 INFO: Epoch 81 - eval loss: 3.579659938812256 - class error: 74.18650817871094
+colossalai - colossalai - 2022-02-22 13:16:31,942 INFO: Epoch 82 - train loss: 3.9472, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:16:39,932 INFO: Epoch 82 - eval loss: 3.5955095291137695 - class error: 72.3809585571289
+colossalai - colossalai - 2022-02-22 13:17:28,627 INFO: Epoch 83 - train loss: 4.0541, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:17:36,587 INFO: Epoch 83 - eval loss: 3.5329508781433105 - class error: 71.765869140625
+colossalai - colossalai - 2022-02-22 13:18:27,946 INFO: Epoch 84 - train loss: 3.9661, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:18:35,768 INFO: Epoch 84 - eval loss: 3.4990267753601074 - class error: 68.88888549804688
+colossalai - colossalai - 2022-02-22 13:19:29,074 INFO: Epoch 85 - train loss: 3.9374, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:19:37,114 INFO: Epoch 85 - eval loss: 3.538952350616455 - class error: 73.45238494873047
+colossalai - colossalai - 2022-02-22 13:20:25,575 INFO: Epoch 86 - train loss: 3.9887, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:20:33,742 INFO: Epoch 86 - eval loss: 3.4892818927764893 - class error: 69.2261962890625
+colossalai - colossalai - 2022-02-22 13:21:21,181 INFO: Epoch 87 - train loss: 3.917, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:21:29,636 INFO: Epoch 87 - eval loss: 3.4316067695617676 - class error: 69.6031723022461
+colossalai - colossalai - 2022-02-22 13:22:18,265 INFO: Epoch 88 - train loss: 3.9625, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:22:26,304 INFO: Epoch 88 - eval loss: 3.5460305213928223 - class error: 71.68650817871094
+colossalai - colossalai - 2022-02-22 13:23:08,880 INFO: Epoch 89 - train loss: 3.9276, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:23:16,460 INFO: Epoch 89 - eval loss: 3.4378604888916016 - class error: 71.36904907226562
+colossalai - colossalai - 2022-02-22 13:23:59,133 INFO: Epoch 90 - train loss: 3.9421, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:24:06,856 INFO: Epoch 90 - eval loss: 3.510594367980957 - class error: 73.84920501708984
+colossalai - colossalai - 2022-02-22 13:24:50,064 INFO: Epoch 91 - train loss: 3.8796, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:24:57,756 INFO: Epoch 91 - eval loss: 3.4837241172790527 - class error: 70.2579345703125
+colossalai - colossalai - 2022-02-22 13:25:44,260 INFO: Epoch 92 - train loss: 3.8701, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:25:52,936 INFO: Epoch 92 - eval loss: 3.461699962615967 - class error: 71.34920501708984
+colossalai - colossalai - 2022-02-22 13:26:38,778 INFO: Epoch 93 - train loss: 3.8578, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:26:46,456 INFO: Epoch 93 - eval loss: 3.563011884689331 - class error: 74.484130859375
+colossalai - colossalai - 2022-02-22 13:27:36,618 INFO: Epoch 94 - train loss: 3.935, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:27:44,314 INFO: Epoch 94 - eval loss: 3.4820752143859863 - class error: 73.47222137451172
+colossalai - colossalai - 2022-02-22 13:28:30,674 INFO: Epoch 95 - train loss: 3.9257, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:28:39,051 INFO: Epoch 95 - eval loss: 3.533287525177002 - class error: 71.01190948486328
+colossalai - colossalai - 2022-02-22 13:29:22,274 INFO: Epoch 96 - train loss: 3.886, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:29:30,712 INFO: Epoch 96 - eval loss: 3.4690165519714355 - class error: 68.19444274902344
+colossalai - colossalai - 2022-02-22 13:30:19,841 INFO: Epoch 97 - train loss: 3.8872, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:30:27,745 INFO: Epoch 97 - eval loss: 3.4316694736480713 - class error: 71.36904907226562
+colossalai - colossalai - 2022-02-22 13:31:09,772 INFO: Epoch 98 - train loss: 3.9108, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:31:17,783 INFO: Epoch 98 - eval loss: 3.4197006225585938 - class error: 72.04364776611328
+colossalai - colossalai - 2022-02-22 13:31:56,830 INFO: Epoch 99 - train loss: 3.9367, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:32:05,071 INFO: Epoch 99 - eval loss: 3.428154468536377 - class error: 72.06349182128906
+colossalai - colossalai - 2022-02-22 13:32:50,829 INFO: Epoch 100 - train loss: 3.9499, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:32:58,800 INFO: Epoch 100 - eval loss: 3.4995975494384766 - class error: 69.58333587646484
+colossalai - colossalai - 2022-02-22 13:33:44,715 INFO: Epoch 101 - train loss: 3.8666, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:33:53,006 INFO: Epoch 101 - eval loss: 3.4555253982543945 - class error: 71.32936096191406
+colossalai - colossalai - 2022-02-22 13:34:38,068 INFO: Epoch 102 - train loss: 3.8445, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:34:46,467 INFO: Epoch 102 - eval loss: 3.5511221885681152 - class error: 73.82936096191406
+colossalai - colossalai - 2022-02-22 13:35:35,909 INFO: Epoch 103 - train loss: 3.8332, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:35:44,172 INFO: Epoch 103 - eval loss: 3.4727938175201416 - class error: 69.92063903808594
+colossalai - colossalai - 2022-02-22 13:36:25,915 INFO: Epoch 104 - train loss: 3.9241, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:36:33,640 INFO: Epoch 104 - eval loss: 3.4732871055603027 - class error: 74.92063903808594
+colossalai - colossalai - 2022-02-22 13:37:25,953 INFO: Epoch 105 - train loss: 3.9125, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:37:33,596 INFO: Epoch 105 - eval loss: 3.421639919281006 - class error: 70.9920654296875
+colossalai - colossalai - 2022-02-22 13:38:16,333 INFO: Epoch 106 - train loss: 3.8655, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:38:24,007 INFO: Epoch 106 - eval loss: 3.501709461212158 - class error: 72.7579345703125
+colossalai - colossalai - 2022-02-22 13:39:14,866 INFO: Epoch 107 - train loss: 3.7931, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:39:23,245 INFO: Epoch 107 - eval loss: 3.3642845153808594 - class error: 73.82936096191406
+colossalai - colossalai - 2022-02-22 13:40:04,846 INFO: Epoch 108 - train loss: 3.843, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:40:13,384 INFO: Epoch 108 - eval loss: 3.482959747314453 - class error: 73.1547622680664
+colossalai - colossalai - 2022-02-22 13:40:59,309 INFO: Epoch 109 - train loss: 3.8017, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:41:07,430 INFO: Epoch 109 - eval loss: 3.380305528640747 - class error: 71.68650817871094
+colossalai - colossalai - 2022-02-22 13:41:54,037 INFO: Epoch 110 - train loss: 3.8401, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:42:01,833 INFO: Epoch 110 - eval loss: 3.4117259979248047 - class error: 69.58333587646484
+colossalai - colossalai - 2022-02-22 13:42:49,301 INFO: Epoch 111 - train loss: 3.8757, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:42:57,292 INFO: Epoch 111 - eval loss: 3.444952964782715 - class error: 72.04364776611328
+colossalai - colossalai - 2022-02-22 13:43:44,147 INFO: Epoch 112 - train loss: 3.8571, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:43:52,273 INFO: Epoch 112 - eval loss: 3.3871474266052246 - class error: 72.40079498291016
+colossalai - colossalai - 2022-02-22 13:44:39,414 INFO: Epoch 113 - train loss: 3.8674, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:44:47,310 INFO: Epoch 113 - eval loss: 3.515768051147461 - class error: 74.16667175292969
+colossalai - colossalai - 2022-02-22 13:45:32,865 INFO: Epoch 114 - train loss: 3.8421, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:45:42,538 INFO: Epoch 114 - eval loss: 3.459268808364868 - class error: 74.20635223388672
+colossalai - colossalai - 2022-02-22 13:46:31,893 INFO: Epoch 115 - train loss: 3.7849, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:46:40,297 INFO: Epoch 115 - eval loss: 3.4207561016082764 - class error: 70.69444274902344
+colossalai - colossalai - 2022-02-22 13:47:22,005 INFO: Epoch 116 - train loss: 3.7205, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:47:29,614 INFO: Epoch 116 - eval loss: 3.422013759613037 - class error: 71.66667175292969
+colossalai - colossalai - 2022-02-22 13:48:04,127 INFO: Epoch 117 - train loss: 3.818, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:48:11,727 INFO: Epoch 117 - eval loss: 3.3512747287750244 - class error: 70.63491821289062
+colossalai - colossalai - 2022-02-22 13:48:59,099 INFO: Epoch 118 - train loss: 3.7619, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:49:07,731 INFO: Epoch 118 - eval loss: 3.4954073429107666 - class error: 70.97222137451172
+colossalai - colossalai - 2022-02-22 13:49:53,424 INFO: Epoch 119 - train loss: 3.8613, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:50:01,911 INFO: Epoch 119 - eval loss: 3.378243923187256 - class error: 71.32936096191406
+colossalai - colossalai - 2022-02-22 13:50:43,779 INFO: Epoch 120 - train loss: 3.7527, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:50:51,235 INFO: Epoch 120 - eval loss: 3.4851226806640625 - class error: 71.30952453613281
+colossalai - colossalai - 2022-02-22 13:51:36,601 INFO: Epoch 121 - train loss: 3.8462, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:51:45,343 INFO: Epoch 121 - eval loss: 3.3693289756774902 - class error: 73.13491821289062
+colossalai - colossalai - 2022-02-22 13:52:30,321 INFO: Epoch 122 - train loss: 3.7375, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:52:37,876 INFO: Epoch 122 - eval loss: 3.4735524654388428 - class error: 73.78968811035156
+colossalai - colossalai - 2022-02-22 13:53:24,330 INFO: Epoch 123 - train loss: 3.8049, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:53:31,966 INFO: Epoch 123 - eval loss: 3.4073336124420166 - class error: 75.23809814453125
+colossalai - colossalai - 2022-02-22 13:54:15,272 INFO: Epoch 124 - train loss: 3.6992, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:54:23,083 INFO: Epoch 124 - eval loss: 3.4590983390808105 - class error: 73.11508178710938
+colossalai - colossalai - 2022-02-22 13:55:02,133 INFO: Epoch 125 - train loss: 3.8458, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:55:09,970 INFO: Epoch 125 - eval loss: 3.4651920795440674 - class error: 74.12698364257812
+colossalai - colossalai - 2022-02-22 13:55:51,306 INFO: Epoch 126 - train loss: 3.7512, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:55:59,022 INFO: Epoch 126 - eval loss: 3.4755053520202637 - class error: 73.78968811035156
+colossalai - colossalai - 2022-02-22 13:56:45,384 INFO: Epoch 127 - train loss: 3.7828, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:56:53,002 INFO: Epoch 127 - eval loss: 3.3524913787841797 - class error: 70.9920654296875
+colossalai - colossalai - 2022-02-22 13:57:36,746 INFO: Epoch 128 - train loss: 3.7583, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:57:44,798 INFO: Epoch 128 - eval loss: 3.4973840713500977 - class error: 71.68650817871094
+colossalai - colossalai - 2022-02-22 13:58:24,306 INFO: Epoch 129 - train loss: 3.8176, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:58:31,987 INFO: Epoch 129 - eval loss: 3.4723782539367676 - class error: 73.80952453613281
+colossalai - colossalai - 2022-02-22 13:59:17,731 INFO: Epoch 130 - train loss: 3.7758, lr: 5e-05
+colossalai - colossalai - 2022-02-22 13:59:25,443 INFO: Epoch 130 - eval loss: 3.4399735927581787 - class error: 73.47222137451172
+colossalai - colossalai - 2022-02-22 14:00:10,059 INFO: Epoch 131 - train loss: 3.7618, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:00:17,842 INFO: Epoch 131 - eval loss: 3.3925704956054688 - class error: 75.97222137451172
+colossalai - colossalai - 2022-02-22 14:01:01,054 INFO: Epoch 132 - train loss: 3.7618, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:01:09,014 INFO: Epoch 132 - eval loss: 3.480297565460205 - class error: 73.82936096191406
+colossalai - colossalai - 2022-02-22 14:01:53,008 INFO: Epoch 133 - train loss: 3.7495, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:02:01,929 INFO: Epoch 133 - eval loss: 3.4416472911834717 - class error: 74.54364776611328
+colossalai - colossalai - 2022-02-22 14:02:49,505 INFO: Epoch 134 - train loss: 3.6991, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:02:57,590 INFO: Epoch 134 - eval loss: 3.410086154937744 - class error: 73.84920501708984
+colossalai - colossalai - 2022-02-22 14:03:43,079 INFO: Epoch 135 - train loss: 3.7618, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:03:51,194 INFO: Epoch 135 - eval loss: 3.3631906509399414 - class error: 70.29762268066406
+colossalai - colossalai - 2022-02-22 14:04:36,756 INFO: Epoch 136 - train loss: 3.749, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:04:44,393 INFO: Epoch 136 - eval loss: 3.417893648147583 - class error: 74.52381896972656
+colossalai - colossalai - 2022-02-22 14:05:29,061 INFO: Epoch 137 - train loss: 3.7966, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:05:36,794 INFO: Epoch 137 - eval loss: 3.3009021282196045 - class error: 73.4920654296875
+colossalai - colossalai - 2022-02-22 14:06:16,415 INFO: Epoch 138 - train loss: 3.6982, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:06:24,095 INFO: Epoch 138 - eval loss: 3.4278178215026855 - class error: 72.42063903808594
+colossalai - colossalai - 2022-02-22 14:07:08,651 INFO: Epoch 139 - train loss: 3.7005, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:07:16,445 INFO: Epoch 139 - eval loss: 3.4024059772491455 - class error: 70.63491821289062
+colossalai - colossalai - 2022-02-22 14:07:59,484 INFO: Epoch 140 - train loss: 3.6268, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:08:07,713 INFO: Epoch 140 - eval loss: 3.3858203887939453 - class error: 72.08333587646484
+colossalai - colossalai - 2022-02-22 14:08:50,613 INFO: Epoch 141 - train loss: 3.6636, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:08:58,248 INFO: Epoch 141 - eval loss: 3.3205132484436035 - class error: 73.47222137451172
+colossalai - colossalai - 2022-02-22 14:09:42,365 INFO: Epoch 142 - train loss: 3.7228, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:09:50,205 INFO: Epoch 142 - eval loss: 3.374558448791504 - class error: 71.7261962890625
+colossalai - colossalai - 2022-02-22 14:10:33,794 INFO: Epoch 143 - train loss: 3.6659, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:10:42,134 INFO: Epoch 143 - eval loss: 3.4047975540161133 - class error: 74.54364776611328
+colossalai - colossalai - 2022-02-22 14:11:25,648 INFO: Epoch 144 - train loss: 3.7018, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:11:33,374 INFO: Epoch 144 - eval loss: 3.3270232677459717 - class error: 73.82936096191406
+colossalai - colossalai - 2022-02-22 14:12:15,967 INFO: Epoch 145 - train loss: 3.6667, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:12:23,903 INFO: Epoch 145 - eval loss: 3.3705832958221436 - class error: 70.61508178710938
+colossalai - colossalai - 2022-02-22 14:13:08,058 INFO: Epoch 146 - train loss: 3.7, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:13:16,117 INFO: Epoch 146 - eval loss: 3.376168727874756 - class error: 72.42063903808594
+colossalai - colossalai - 2022-02-22 14:14:03,949 INFO: Epoch 147 - train loss: 3.636, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:14:11,892 INFO: Epoch 147 - eval loss: 3.373931646347046 - class error: 70.9920654296875
+colossalai - colossalai - 2022-02-22 14:14:55,876 INFO: Epoch 148 - train loss: 3.6832, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:15:03,563 INFO: Epoch 148 - eval loss: 3.2981505393981934 - class error: 70.63491821289062
+colossalai - colossalai - 2022-02-22 14:15:47,965 INFO: Epoch 149 - train loss: 3.8028, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:15:56,194 INFO: Epoch 149 - eval loss: 3.3436152935028076 - class error: 73.13491821289062
+colossalai - colossalai - 2022-02-22 14:16:45,677 INFO: Epoch 150 - train loss: 3.7017, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:16:53,371 INFO: Epoch 150 - eval loss: 3.374647617340088 - class error: 73.47222137451172
+colossalai - colossalai - 2022-02-22 14:17:34,258 INFO: Epoch 151 - train loss: 3.7556, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:17:43,073 INFO: Epoch 151 - eval loss: 3.428459882736206 - class error: 71.01190948486328
+colossalai - colossalai - 2022-02-22 14:18:27,570 INFO: Epoch 152 - train loss: 3.6857, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:18:35,422 INFO: Epoch 152 - eval loss: 3.3076748847961426 - class error: 70.9920654296875
+colossalai - colossalai - 2022-02-22 14:19:18,594 INFO: Epoch 153 - train loss: 3.6915, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:19:26,941 INFO: Epoch 153 - eval loss: 3.3055419921875 - class error: 72.3809585571289
+colossalai - colossalai - 2022-02-22 14:20:07,466 INFO: Epoch 154 - train loss: 3.6783, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:20:15,053 INFO: Epoch 154 - eval loss: 3.3705804347991943 - class error: 71.32936096191406
+colossalai - colossalai - 2022-02-22 14:20:57,631 INFO: Epoch 155 - train loss: 3.6867, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:21:05,496 INFO: Epoch 155 - eval loss: 3.31972074508667 - class error: 71.66667175292969
+colossalai - colossalai - 2022-02-22 14:21:47,134 INFO: Epoch 156 - train loss: 3.6521, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:21:54,899 INFO: Epoch 156 - eval loss: 3.3263845443725586 - class error: 72.71825408935547
+colossalai - colossalai - 2022-02-22 14:22:40,879 INFO: Epoch 157 - train loss: 3.691, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:22:48,500 INFO: Epoch 157 - eval loss: 3.363964796066284 - class error: 72.04364776611328
+colossalai - colossalai - 2022-02-22 14:23:28,653 INFO: Epoch 158 - train loss: 3.6641, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:23:36,466 INFO: Epoch 158 - eval loss: 3.2588889598846436 - class error: 70.61508178710938
+colossalai - colossalai - 2022-02-22 14:24:20,581 INFO: Epoch 159 - train loss: 3.7433, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:24:29,154 INFO: Epoch 159 - eval loss: 3.309730291366577 - class error: 69.90079498291016
+colossalai - colossalai - 2022-02-22 14:25:11,980 INFO: Epoch 160 - train loss: 3.662, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:25:20,403 INFO: Epoch 160 - eval loss: 3.306147575378418 - class error: 71.34920501708984
+colossalai - colossalai - 2022-02-22 14:26:08,343 INFO: Epoch 161 - train loss: 3.5891, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:26:16,173 INFO: Epoch 161 - eval loss: 3.3249142169952393 - class error: 72.3809585571289
+colossalai - colossalai - 2022-02-22 14:26:56,263 INFO: Epoch 162 - train loss: 3.6142, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:27:04,361 INFO: Epoch 162 - eval loss: 3.293001651763916 - class error: 71.32936096191406
+colossalai - colossalai - 2022-02-22 14:27:39,417 INFO: Epoch 163 - train loss: 3.5813, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:27:47,134 INFO: Epoch 163 - eval loss: 3.2908260822296143 - class error: 69.58333587646484
+colossalai - colossalai - 2022-02-22 14:28:27,671 INFO: Epoch 164 - train loss: 3.6705, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:28:35,710 INFO: Epoch 164 - eval loss: 3.281076192855835 - class error: 71.01190948486328
+colossalai - colossalai - 2022-02-22 14:29:21,756 INFO: Epoch 165 - train loss: 3.6461, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:29:30,298 INFO: Epoch 165 - eval loss: 3.329890727996826 - class error: 72.7579345703125
+colossalai - colossalai - 2022-02-22 14:30:08,670 INFO: Epoch 166 - train loss: 3.5949, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:30:16,605 INFO: Epoch 166 - eval loss: 3.3053624629974365 - class error: 72.79762268066406
+colossalai - colossalai - 2022-02-22 14:30:52,597 INFO: Epoch 167 - train loss: 3.7176, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:31:00,692 INFO: Epoch 167 - eval loss: 3.2516777515411377 - class error: 71.32936096191406
+colossalai - colossalai - 2022-02-22 14:31:42,180 INFO: Epoch 168 - train loss: 3.5711, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:31:50,508 INFO: Epoch 168 - eval loss: 3.3052711486816406 - class error: 69.6031723022461
+colossalai - colossalai - 2022-02-22 14:32:35,319 INFO: Epoch 169 - train loss: 3.6376, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:32:43,314 INFO: Epoch 169 - eval loss: 3.294854164123535 - class error: 69.2261962890625
+colossalai - colossalai - 2022-02-22 14:33:23,706 INFO: Epoch 170 - train loss: 3.6469, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:33:31,523 INFO: Epoch 170 - eval loss: 3.285250425338745 - class error: 73.11508178710938
+colossalai - colossalai - 2022-02-22 14:34:12,349 INFO: Epoch 171 - train loss: 3.581, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:34:19,996 INFO: Epoch 171 - eval loss: 3.2587742805480957 - class error: 69.7579345703125
+colossalai - colossalai - 2022-02-22 14:35:01,336 INFO: Epoch 172 - train loss: 3.6351, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:35:09,542 INFO: Epoch 172 - eval loss: 3.2528443336486816 - class error: 71.40079498291016
+colossalai - colossalai - 2022-02-22 14:35:53,130 INFO: Epoch 173 - train loss: 3.6216, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:36:00,888 INFO: Epoch 173 - eval loss: 3.2807767391204834 - class error: 72.63491821289062
+colossalai - colossalai - 2022-02-22 14:36:41,590 INFO: Epoch 174 - train loss: 3.6576, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:36:50,149 INFO: Epoch 174 - eval loss: 3.2753801345825195 - class error: 72.97222137451172
+colossalai - colossalai - 2022-02-22 14:37:29,904 INFO: Epoch 175 - train loss: 3.6699, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:37:37,736 INFO: Epoch 175 - eval loss: 3.2481279373168945 - class error: 71.56349182128906
+colossalai - colossalai - 2022-02-22 14:38:16,244 INFO: Epoch 176 - train loss: 3.5599, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:38:24,205 INFO: Epoch 176 - eval loss: 3.2838971614837646 - class error: 74.04364776611328
+colossalai - colossalai - 2022-02-22 14:39:08,940 INFO: Epoch 177 - train loss: 3.5466, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:39:16,634 INFO: Epoch 177 - eval loss: 3.264974594116211 - class error: 70.90079498291016
+colossalai - colossalai - 2022-02-22 14:39:59,514 INFO: Epoch 178 - train loss: 3.6217, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:40:07,287 INFO: Epoch 178 - eval loss: 3.2282280921936035 - class error: 70.54364776611328
+colossalai - colossalai - 2022-02-22 14:40:50,991 INFO: Epoch 179 - train loss: 3.5537, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:40:58,765 INFO: Epoch 179 - eval loss: 3.1998541355133057 - class error: 67.94047546386719
+colossalai - colossalai - 2022-02-22 14:41:39,521 INFO: Epoch 180 - train loss: 3.6008, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:41:47,217 INFO: Epoch 180 - eval loss: 3.2731823921203613 - class error: 72.54364776611328
+colossalai - colossalai - 2022-02-22 14:42:26,205 INFO: Epoch 181 - train loss: 3.6087, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:42:34,921 INFO: Epoch 181 - eval loss: 3.2106425762176514 - class error: 70.67460632324219
+colossalai - colossalai - 2022-02-22 14:43:13,944 INFO: Epoch 182 - train loss: 3.6397, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:43:22,438 INFO: Epoch 182 - eval loss: 3.2505064010620117 - class error: 71.4920654296875
+colossalai - colossalai - 2022-02-22 14:44:03,640 INFO: Epoch 183 - train loss: 3.5282, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:44:11,951 INFO: Epoch 183 - eval loss: 3.2754831314086914 - class error: 71.18650817871094
+colossalai - colossalai - 2022-02-22 14:44:51,883 INFO: Epoch 184 - train loss: 3.594, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:44:59,603 INFO: Epoch 184 - eval loss: 3.2566308975219727 - class error: 72.4920654296875
+colossalai - colossalai - 2022-02-22 14:45:35,712 INFO: Epoch 185 - train loss: 3.6442, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:45:43,506 INFO: Epoch 185 - eval loss: 3.276494264602661 - class error: 72.66667175292969
+colossalai - colossalai - 2022-02-22 14:46:24,768 INFO: Epoch 186 - train loss: 3.6738, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:46:32,939 INFO: Epoch 186 - eval loss: 3.2741446495056152 - class error: 68.84920501708984
+colossalai - colossalai - 2022-02-22 14:47:13,046 INFO: Epoch 187 - train loss: 3.5926, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:47:20,836 INFO: Epoch 187 - eval loss: 3.2926247119903564 - class error: 71.18650817871094
+colossalai - colossalai - 2022-02-22 14:48:00,584 INFO: Epoch 188 - train loss: 3.5231, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:48:08,528 INFO: Epoch 188 - eval loss: 3.3288512229919434 - class error: 73.34920501708984
+colossalai - colossalai - 2022-02-22 14:48:46,013 INFO: Epoch 189 - train loss: 3.5637, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:48:53,900 INFO: Epoch 189 - eval loss: 3.34769344329834 - class error: 70.06349182128906
+colossalai - colossalai - 2022-02-22 14:49:32,389 INFO: Epoch 190 - train loss: 3.3983, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:49:40,252 INFO: Epoch 190 - eval loss: 3.315495729446411 - class error: 68.42063903808594
+colossalai - colossalai - 2022-02-22 14:50:18,756 INFO: Epoch 191 - train loss: 3.5091, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:50:26,351 INFO: Epoch 191 - eval loss: 3.3092360496520996 - class error: 71.13491821289062
+colossalai - colossalai - 2022-02-22 14:51:05,860 INFO: Epoch 192 - train loss: 3.5772, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:51:13,756 INFO: Epoch 192 - eval loss: 3.308516025543213 - class error: 71.82936096191406
+colossalai - colossalai - 2022-02-22 14:51:52,529 INFO: Epoch 193 - train loss: 3.5684, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:52:00,237 INFO: Epoch 193 - eval loss: 3.335428237915039 - class error: 72.06349182128906
+colossalai - colossalai - 2022-02-22 14:52:43,666 INFO: Epoch 194 - train loss: 3.5955, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:52:51,393 INFO: Epoch 194 - eval loss: 3.429011821746826 - class error: 69.40872955322266
+colossalai - colossalai - 2022-02-22 14:53:35,177 INFO: Epoch 195 - train loss: 3.6538, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:53:42,829 INFO: Epoch 195 - eval loss: 3.365734577178955 - class error: 71.84920501708984
+colossalai - colossalai - 2022-02-22 14:54:23,585 INFO: Epoch 196 - train loss: 3.5151, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:54:31,387 INFO: Epoch 196 - eval loss: 3.386573076248169 - class error: 68.80952453613281
+colossalai - colossalai - 2022-02-22 14:55:14,008 INFO: Epoch 197 - train loss: 3.5056, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:55:22,332 INFO: Epoch 197 - eval loss: 3.314708948135376 - class error: 69.88095092773438
+colossalai - colossalai - 2022-02-22 14:56:02,568 INFO: Epoch 198 - train loss: 3.5517, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:56:10,237 INFO: Epoch 198 - eval loss: 3.2765889167785645 - class error: 67.32936096191406
+colossalai - colossalai - 2022-02-22 14:56:49,248 INFO: Epoch 199 - train loss: 3.6067, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:56:57,187 INFO: Epoch 199 - eval loss: 3.3202335834503174 - class error: 65.69444274902344
+colossalai - colossalai - 2022-02-22 14:57:38,982 INFO: Epoch 200 - train loss: 3.5235, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:57:46,607 INFO: Epoch 200 - eval loss: 3.364558219909668 - class error: 72.05555725097656
+colossalai - colossalai - 2022-02-22 14:58:26,221 INFO: Epoch 201 - train loss: 3.5446, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:58:33,995 INFO: Epoch 201 - eval loss: 3.3089687824249268 - class error: 68.47222137451172
+colossalai - colossalai - 2022-02-22 14:59:13,944 INFO: Epoch 202 - train loss: 3.6129, lr: 5e-05
+colossalai - colossalai - 2022-02-22 14:59:21,779 INFO: Epoch 202 - eval loss: 3.3342971801757812 - class error: 67.05158233642578
+colossalai - colossalai - 2022-02-22 15:00:00,679 INFO: Epoch 203 - train loss: 3.6027, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:00:08,429 INFO: Epoch 203 - eval loss: 3.403438091278076 - class error: 68.9920654296875
+colossalai - colossalai - 2022-02-22 15:00:50,170 INFO: Epoch 204 - train loss: 3.5544, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:00:58,542 INFO: Epoch 204 - eval loss: 3.32444167137146 - class error: 68.68650817871094
+colossalai - colossalai - 2022-02-22 15:01:37,660 INFO: Epoch 205 - train loss: 3.4677, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:01:45,505 INFO: Epoch 205 - eval loss: 3.332927703857422 - class error: 70.17857360839844
+colossalai - colossalai - 2022-02-22 15:02:28,323 INFO: Epoch 206 - train loss: 3.5031, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:02:36,511 INFO: Epoch 206 - eval loss: 3.336432695388794 - class error: 68.77777862548828
+colossalai - colossalai - 2022-02-22 15:03:18,825 INFO: Epoch 207 - train loss: 3.4424, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:03:26,407 INFO: Epoch 207 - eval loss: 3.287259101867676 - class error: 69.79762268066406
+colossalai - colossalai - 2022-02-22 15:04:07,825 INFO: Epoch 208 - train loss: 3.5296, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:04:15,511 INFO: Epoch 208 - eval loss: 3.383897304534912 - class error: 72.20635223388672
+colossalai - colossalai - 2022-02-22 15:04:58,125 INFO: Epoch 209 - train loss: 3.4998, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:05:06,073 INFO: Epoch 209 - eval loss: 3.284909248352051 - class error: 68.74603271484375
+colossalai - colossalai - 2022-02-22 15:05:49,210 INFO: Epoch 210 - train loss: 3.4694, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:05:56,961 INFO: Epoch 210 - eval loss: 3.2859253883361816 - class error: 68.84920501708984
+colossalai - colossalai - 2022-02-22 15:06:35,481 INFO: Epoch 211 - train loss: 3.4294, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:06:43,468 INFO: Epoch 211 - eval loss: 3.2928404808044434 - class error: 72.32142639160156
+colossalai - colossalai - 2022-02-22 15:07:21,701 INFO: Epoch 212 - train loss: 3.5161, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:07:29,746 INFO: Epoch 212 - eval loss: 3.3167715072631836 - class error: 68.13491821289062
+colossalai - colossalai - 2022-02-22 15:08:10,702 INFO: Epoch 213 - train loss: 3.5433, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:08:19,487 INFO: Epoch 213 - eval loss: 3.3752031326293945 - class error: 73.71031188964844
+colossalai - colossalai - 2022-02-22 15:08:58,882 INFO: Epoch 214 - train loss: 3.5375, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:09:06,702 INFO: Epoch 214 - eval loss: 3.407822608947754 - class error: 71.7579345703125
+colossalai - colossalai - 2022-02-22 15:09:46,630 INFO: Epoch 215 - train loss: 3.6264, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:09:54,630 INFO: Epoch 215 - eval loss: 3.354287624359131 - class error: 73.09524536132812
+colossalai - colossalai - 2022-02-22 15:10:38,023 INFO: Epoch 216 - train loss: 3.6205, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:10:45,996 INFO: Epoch 216 - eval loss: 3.387268543243408 - class error: 71.23809814453125
+colossalai - colossalai - 2022-02-22 15:11:28,438 INFO: Epoch 217 - train loss: 3.5282, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:11:36,401 INFO: Epoch 217 - eval loss: 3.3617494106292725 - class error: 69.97222137451172
+colossalai - colossalai - 2022-02-22 15:12:12,251 INFO: Epoch 218 - train loss: 3.5283, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:12:19,896 INFO: Epoch 218 - eval loss: 3.423964023590088 - class error: 67.90079498291016
+colossalai - colossalai - 2022-02-22 15:13:03,859 INFO: Epoch 219 - train loss: 3.572, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:13:11,734 INFO: Epoch 219 - eval loss: 3.32987380027771 - class error: 67.58333587646484
+colossalai - colossalai - 2022-02-22 15:13:52,859 INFO: Epoch 220 - train loss: 3.5692, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:14:00,465 INFO: Epoch 220 - eval loss: 3.4546029567718506 - class error: 80.20237731933594
+colossalai - colossalai - 2022-02-22 15:14:39,516 INFO: Epoch 221 - train loss: 3.5409, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:14:48,281 INFO: Epoch 221 - eval loss: 3.392991781234741 - class error: 75.44444274902344
+colossalai - colossalai - 2022-02-22 15:15:29,707 INFO: Epoch 222 - train loss: 3.5933, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:15:37,683 INFO: Epoch 222 - eval loss: 3.291520595550537 - class error: 67.82936096191406
+colossalai - colossalai - 2022-02-22 15:16:14,708 INFO: Epoch 223 - train loss: 3.5209, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:16:22,363 INFO: Epoch 223 - eval loss: 3.277078628540039 - class error: 67.14682006835938
+colossalai - colossalai - 2022-02-22 15:16:59,984 INFO: Epoch 224 - train loss: 3.5577, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:17:07,854 INFO: Epoch 224 - eval loss: 3.405857563018799 - class error: 72.73015594482422
+colossalai - colossalai - 2022-02-22 15:17:47,584 INFO: Epoch 225 - train loss: 3.5292, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:17:55,751 INFO: Epoch 225 - eval loss: 3.426326274871826 - class error: 72.32936096191406
+colossalai - colossalai - 2022-02-22 15:18:34,958 INFO: Epoch 226 - train loss: 3.4346, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:18:43,082 INFO: Epoch 226 - eval loss: 3.339479446411133 - class error: 70.83729553222656
+colossalai - colossalai - 2022-02-22 15:19:22,714 INFO: Epoch 227 - train loss: 3.4255, lr: 5e-05
+colossalai - colossalai - 2022-02-22 15:19:30,876 INFO: Epoch 227 - eval loss: 3.3482742309570312 - class error: 72.58729553222656
