@@ -4,25 +4,24 @@ import colossalai
 import colossalai.utils as utils
 import torch
 import torch.nn as nn
+from torch.distributed import all_reduce, get_rank, get_world_size, is_initialized
 from colossalai.context.parallel_mode import ParallelMode
 from colossalai.core import global_context as gpc
 from colossalai.logging import disable_existing_loggers, get_dist_logger
 from colossalai.nn import LinearWarmupLR
-from colossalai.trainer import Trainer, hooks
 from colossalai.utils import colo_set_process_memory_fraction, get_current_device, MultiTimer
 from colossalai.utils.model.colo_init_context import ColoInitContext
 from colossalai.nn._ops import *
 from colossalai.nn.parallel.layers import init_colo_module
-from colossalai.tensor import TensorSpec, ComputePattern, ParallelAction
+from colossalai.tensor import TensorSpec, ComputePattern, ComputeSpec, ChunkManager
+from colossalai.gemini.gemini_mgr import GeminiManager
+from colossalai.nn.parallel import ZeroDDP
+from colossalai.nn.optimizer import HybridAdam
+from colossalai.zero import ZeroOptimizer
 
 from language.bert.colotensor.dataset import build_data
 from language.bert.colotensor.model import build_model
-
-def calc_local_model_size(model: torch.nn.Module):
-    numel_per_device = 0
-    for p in model.parameters():
-        numel_per_device += p.numel()
-    return numel_per_device
+from language.bert.colotensor.utils import AsyncMemoryMonitor, train, test, calc_local_model_size
 
 
 def main():
@@ -43,64 +42,48 @@ def main():
     )
 
     logger.info('Build model', ranks=[0])
-    use_zero = hasattr(gpc.config, 'zero')
+    use_zero = True
 
-    # TODO(jzy) Add ZERO
-    if use_zero:
-        raise NotImplemented
-    else:
-        with ColoInitContext(device=get_current_device()):
-            model = build_model()
+    with ColoInitContext(device=get_current_device()):
+        model = build_model()
         
-        parallel_action = ParallelAction(ComputePattern.TP1D)
-        init_colo_module(model, parallel_action, recursive=True, mode='col')
+    compute_spec = ComputeSpec(ComputePattern.TP1D)
+    init_colo_module(model, compute_spec, recursive=True, mode='col')
 
+    use_chunk = True
+    placement_policy = 'cuda'
+    optimizer_class = HybridAdam
+    lr = gpc.config.LR
     if use_zero:
-        raise NotImplemented
+        chunk_size = ChunkManager.search_chunk_size(model, 8192, 8) if use_chunk else None
+        chunk_manager = ChunkManager(chunk_size,
+                                    enable_distributed_storage=use_zero,
+                                    init_device=GeminiManager.get_default_device(placement_policy))
+        gemini_manager = GeminiManager(placement_policy, chunk_manager)
+        model = ZeroDDP(model, gemini_manager)
+        optimizer = optimizer_class(model.parameters(), lr=lr, weight_decay=1e-2, adamw_mode=True)
+        optimizer = ZeroOptimizer(optimizer, model, initial_scale=32)
     else:
-        numel = calc_local_model_size(model)
+        optimizer = optimizer_class(model.parameters(), lr=lr, weight_decay=1e-2, adamw_mode=True)
 
-    tflop = numel * gpc.config.BATCH_SIZE * gpc.config.SEQ_LENGTH \
-        * gpc.get_world_size(ParallelMode.MODEL) * gpc.get_world_size(ParallelMode.DATA) * 8 / (1024 ** 4)
-
+    numel = calc_local_model_size(model)
     criterion = nn.CrossEntropyLoss()
-
     logger.info('Build optimizer', ranks=[0])
-    optimizer_class = torch.optim.AdamW
-    optimizer = optimizer_class(model.parameters(), lr=0.001, weight_decay=1e-2)
 
-    lr_scheduler = LinearWarmupLR(optimizer, total_steps=gpc.config.NUM_EPOCHS, warmup_steps=2)
+    total_steps = gpc.config.NUM_EPOCHS * len(train_dataloader)
+    warmup_proportion = gpc.config.WARMUP_PROPORTION
+    lr_scheduler = LinearWarmupLR(optimizer, total_steps=total_steps, warmup_steps=total_steps * warmup_proportion)
 
-    engine, train_dataloader, _, lr_scheduler = colossalai.initialize(model,
-                                                                      optimizer,
-                                                                      criterion,
-                                                                      train_dataloader=train_dataloader,
-                                                                      lr_scheduler=lr_scheduler)
     global_batch_size = gpc.config.BATCH_SIZE * \
         gpc.get_world_size(ParallelMode.DATA) * getattr(gpc.config, "gradient_accumulation", 1)
     logger.info(f'Init done, global batch size = {global_batch_size}', ranks=[0])
 
-    timier = MultiTimer()
-
-    trainer = Trainer(engine=engine, logger=logger, timer=timier)
-
-    hook_list = [
-        hooks.LossHook(),
-        hooks.LRSchedulerHook(lr_scheduler=lr_scheduler, by_epoch=True),
-        hooks.LogMetricByEpochHook(logger),
-        hooks.ThroughputHook(ignored_steps=10, tflop_per_step=tflop),
-        hooks.LogMetricByStepHook(),
-        hooks.LogMemoryByEpochHook(logger),
-    ]
-
-    trainer.fit(train_dataloader=train_dataloader,
-                epochs=gpc.config.NUM_EPOCHS,
-                test_interval=1,
-                hooks=hook_list,
-                display_progress=True,
-                return_output_label=False,
-                max_steps=5)
-
+    rank = get_rank()
+    world_size = get_world_size()
+    mem_monitor = AsyncMemoryMonitor(rank)
+    for epoch in range(gpc.config.NUM_EPOCHS):
+        train(epoch, rank, world_size, train_dataloader, model, criterion, optimizer, lr_scheduler, mem_monitor, numel, use_zero)
+        test(epoch, rank, world_size, test_dataloader, model, criterion, mem_monitor, numel)
 
 if __name__ == '__main__':
     main()
