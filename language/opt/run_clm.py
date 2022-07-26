@@ -35,8 +35,7 @@ from colossalai.core import global_context as gpc
 from colossalai.context import ParallelMode
 from tqdm.auto import tqdm
 import colossalai
-from colossalai.logging import get_dist_logger
-from colossalai.utils import get_dataloader
+from colossalai.logging import get_dist_logger, disable_existing_loggers
 from titans.utils import barrier_context
 
 import transformers
@@ -44,9 +43,13 @@ from accelerate.utils import set_seed
 from transformers import (CONFIG_MAPPING, MODEL_MAPPING, AutoConfig, OPTForCausalLM, AutoTokenizer, SchedulerType,
                           default_data_collator, get_scheduler, GPT2Tokenizer)
 from transformers.utils.versions import require_version
-from colossalai.zero.init_ctx import ZeroInitContext
-from colossalai.zero.shard_utils import TensorShardStrategy
+from colossalai.utils.model.colo_init_context import ColoInitContext
+from colossalai.nn.parallel import ZeroDDP
+from colossalai.gemini import ChunkManager, GeminiManager
 from colossalai.nn.optimizer import HybridAdam
+from colossalai.zero import ZeroOptimizer
+from colossalai.tensor import ProcessGroup
+from colossalai.utils.checkpoint import save_checkpoint, load_checkpoint
 from colossalai.utils import get_dataloader, get_current_device
 
 from utils import colo_memory_cap
@@ -226,9 +229,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-
-    colossalai.launch_from_torch(config='./colossalai_zero.py')
-
+    disable_existing_loggers()
+    colossalai.launch_from_torch(config=dict())
     logger = get_dist_logger()
     is_main_process = gpc.get_local_rank(ParallelMode.DATA) == 0
 
@@ -326,12 +328,30 @@ def main():
     logger.info(f"{tokenizer.__class__.__name__} is created")
 
     # build model
-    shard_strategy = TensorShardStrategy()
-    with ZeroInitContext(target_device=get_current_device(), shard_strategy=shard_strategy, shard_param=True):
-        model = OPTForCausalLM.from_pretrained(args.model_name_or_path, config=config)
+    if args.model_name_or_path:
+        with ColoInitContext(device=get_current_device()):
+            model = OPTForCausalLM.from_pretrained(
+                args.model_name_or_path,
+                from_tf=bool(".ckpt" in args.model_name_or_path),
+                config=config,
+                local_files_only=False
+            )
+    else:
+        logger.info("Training new model from scratch")
+        model = OPTForCausalLM.from_config(config, local_files_only=False)
 
-        # enable graident checkpointing
-        model.gradient_checkpointing_enable()
+    # enable graident checkpointing
+    model.gradient_checkpointing_enable()
+    model = model.half().cuda()
+
+    chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024 ** 2, 32)
+    pg = ProcessGroup()
+    placement_policy = 'auto'
+    chunk_manager = ChunkManager(chunk_size, process_group=pg,
+                                 enable_distributed_storage=True,
+                                 init_device=GeminiManager.get_default_device(placement_policy))
+    gemini_manager = GeminiManager(placement_policy, chunk_manager)
+    model = ZeroDDP(model, gemini_manager)
     logger.info(f'{model.__class__.__name__} is created')
 
     # Preprocessing the datasets.
@@ -377,7 +397,7 @@ def main():
         # Split by chunks of max_len.
         result = {
             k: [t[i:i + block_size] for i in range(0, total_length, block_size)
-               ] for k, t in concatenated_examples.items()
+                ] for k, t in concatenated_examples.items()
         }
         result["labels"] = result["input_ids"].copy()
         return result
@@ -431,6 +451,7 @@ def main():
     ]
 
     optimizer = HybridAdam(optimizer_grouped_parameters, lr=args.learning_rate)
+    optimizer = ZeroOptimizer(optimizer, model, initial_scale=2 ** 14)
 
     num_update_steps_per_epoch = len(train_dataloader)
     num_training_steps = args.num_train_epochs * num_update_steps_per_epoch
@@ -445,9 +466,6 @@ def main():
     engine, train_dataloader, eval_dataloader, lr_scheduler = colossalai.initialize(model, optimizer, None,
                                                                                     train_dataloader, eval_dataloader,
                                                                                     lr_scheduler)
-
-    # We need to recalculate our total training steps as the size of the training dataloader may have changed.
-    num_update_steps_per_epoch = len(train_dataloader)
 
     # Train!
     total_batch_size = args.per_device_train_batch_size * gpc.get_world_size(ParallelMode.DATA)
@@ -501,12 +519,8 @@ def main():
         logger.info(f"epoch {epoch}: perplexity: {perplexity} eval_loss: {eval_loss}", ranks=[0])
 
     if args.output_dir is not None:
-        model_state = model.state_dict
-
-        if is_main_process:
-            ckpt_file_path = os.path.join(args.output_dir, 'weights.pth')
-            ckpt = {'model': model_state}
-            torch.save(ckpt, ckpt_file_path)
+        save_checkpoint(args.output_dir, completed_steps, model)
+        # load_checkpoint(args.output_dir, completed_steps, model, strict=False)
 
 
 if __name__ == "__main__":
