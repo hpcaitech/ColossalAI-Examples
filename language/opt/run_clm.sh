@@ -2,6 +2,7 @@ export BS=${1:-16}
 export MEMCAP=${2:-0}
 export MODEL=${3:-"6.7b"}
 export GPUNUM=${4:-1}
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 
 # make directory for logs
 mkdir -p ./logs
@@ -18,5 +19,3 @@ torchrun \
   --mem_cap ${MEMCAP} \
   --per_device_train_batch_size ${BS} 2>&1 | tee ./logs/colo_${MODEL}_bs_${BS}_cap_${MEMCAP}_gpu_${GPUNUM}.log
 
-
-    

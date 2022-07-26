@@ -208,6 +208,7 @@ def parse_args():
     )
 
     parser.add_argument("--mem_cap", type=int, default=0, help="use mem cap")
+    parser.add_argument("--init_in_cpu", action='store_true', default=False, help="init training model in cpu")
     args = parser.parse_args()
 
     # Sanity checks
@@ -321,24 +322,32 @@ def main():
         logger.warning("You are instantiating a new config instance from scratch.")
     logger.info("Model config is created")
 
-    if args.model_name_or_path == 'facebook/13b':
+    if args.model_name_or_path == 'facebook/opt-13b':
         tokenizer = GPT2Tokenizer.from_pretrained(args.model_name_or_path)
     else:
         tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, use_fast=not args.use_slow_tokenizer)
     logger.info(f"{tokenizer.__class__.__name__} is created")
 
+    if args.init_in_cpu:
+        init_dev = torch.device('cpu')
+    else:
+        init_dev = get_current_device()
+
     # build model
-    if args.model_name_or_path:
-        with ColoInitContext(device=get_current_device()):
+    if args.model_name_or_path is None or args.model_name_or_path == 'facebook/opt-13b':
+        # currently, there has a bug in pretrained opt-13b
+        # we can not import it until huggingface fix it
+        logger.info("Training new model from scratch")
+        with ColoInitContext(device=init_dev):
+            model = OPTForCausalLM(config)
+    else:
+        with ColoInitContext(device=init_dev):
             model = OPTForCausalLM.from_pretrained(
                 args.model_name_or_path,
                 from_tf=bool(".ckpt" in args.model_name_or_path),
                 config=config,
                 local_files_only=False
             )
-    else:
-        logger.info("Training new model from scratch")
-        model = OPTForCausalLM.from_config(config, local_files_only=False)
 
     # enable graident checkpointing
     model.gradient_checkpointing_enable()
