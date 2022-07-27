@@ -1,8 +1,8 @@
 export BS=${1:-16}
 export MEMCAP=${2:-0}
-export MODEL=${3:-"6.7b"}
+export MODEL=${3:-"1.3b"}
 export GPUNUM=${4:-1}
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+# export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 
 # make directory for logs
 mkdir -p ./logs
