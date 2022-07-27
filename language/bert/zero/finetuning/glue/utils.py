@@ -11,12 +11,12 @@ from tqdm import trange, tqdm
 from colossalai.core import global_context as gpc
 
 from torch.utils.data import SequentialSampler, DataLoader
-from colossalai.nn.optimizer import FusedAdam
+from colossalai.nn.optimizer import HybridAdam
 from colossalai.nn.lr_scheduler import LinearWarmupLR
 from colossalai.utils import get_dataloader
 from transformers import BertForSequenceClassification
-from colossalai.context import ParallelMode
-from colossalai.tensor import TensorSpec, ComputePattern, ParallelAction, DistSpecManager, distspec
+from colossalai.utils.checkpoint import save_checkpoint
+from pathlib import Path
 
 __all__ = [
     'get_model', 'get_optimizer', 'get_lr_scheduler', 'get_train_dataloader', 'run_train', 'get_eval_dataloader',
@@ -24,14 +24,10 @@ __all__ = [
 ]
 
 
-def get_model(config_file, num_labels, use_hf_pretrain=False):
+def get_model(config_file, num_labels):
     config = transformers.BertConfig.from_json_file(config_file)
     config.num_labels = num_labels
-
-    if use_hf_pretrain:
-        model = BertForSequenceClassification.from_pretrained('bert-base-uncased', config=config)
-    else:
-        model = transformers.BertForSequenceClassification(config=config)
+    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', config=config)
     return model
 
 
@@ -51,7 +47,7 @@ def get_optimizer(model, lr):
         },
     ]
 
-    optimizer = FusedAdam(params=optimizer_grouped_parameters, lr=lr, bias_correction=False)
+    optimizer = HybridAdam(optimizer_grouped_parameters, lr=lr, bias_correction=False)
     return optimizer
 
 
@@ -84,7 +80,7 @@ def get_train_dataloader(args, tokenizer, processor, logger):
     return train_dataloader
 
 
-def run_train(args, engine, train_dataloader, lr_scheduler, logger):
+def run_train(args, model, optimizer, criterion, train_dataloader, lr_scheduler, logger):
     results = {}
 
     # prep
@@ -92,7 +88,7 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
     num_train_steps = 0
     train_loss = 0
     num_train_examples = 0
-    engine.train()
+    model.train()
 
     for _ in trange(int(args.num_train_epochs), desc="Epoch"):
         train_loss, num_train_steps = 0, 0
@@ -102,18 +98,18 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
             if args.max_steps > 0 and global_step > args.max_steps:
                 break
 
-            engine.zero_grad()
+            optimizer.zero_grad()
 
             # forward
             batch = tuple(t.cuda() for t in batch)
             input_ids, input_mask, segment_ids, label_ids = batch
-            outputs = engine(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
+            outputs = model(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
             logits = outputs['logits']
-            loss = engine.criterion(logits, label_ids)
-            engine.backward(loss)
+            loss = criterion(logits, label_ids)
+            optimizer.backward(loss)
 
             # step
-            engine.step()
+            optimizer.step()
             lr_scheduler.step()
 
             train_loss += loss.item()
@@ -131,7 +127,7 @@ def run_train(args, engine, train_dataloader, lr_scheduler, logger):
 
     logger.info(results, ranks=[0])
 
-    model_to_save = engine.model
+    model_to_save = model
     state_dict = model_to_save.state_dict()
 
     if gpc.get_global_rank() == 0 and not args.skip_checkpoint:
@@ -188,10 +184,10 @@ def dump_predictions(path, label_map, preds, examples):
         json.dump(predictions, writer)
 
 
-def run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map, logger):
+def run_eval(args, model, criterion, eval_dataloader, eval_examples, num_labels, label_map, logger):
     results = {}
 
-    engine.eval()
+    model.eval()
     preds = None
     out_label_ids = None
     eval_loss = 0
@@ -210,11 +206,11 @@ def run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map
 
         with torch.no_grad():
             cuda_events[i][0].record()
-            outputs = engine(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
+            outputs = model(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
             logits = outputs['logits']
             cuda_events[i][1].record()
             if args.eval:
-                eval_loss += engine.criterion(
+                eval_loss += criterion(
                     logits.view(-1, num_labels),
                     label_ids.view(-1),
                 ).mean().item()
@@ -271,13 +267,3 @@ def run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map
         eval_result = compute_metrics(args.task_name, preds, out_label_ids)
         results.update(eval_result)
         logger.info(results, ranks=[0])
-
-
-def init_1d_row_spec(model):
-    spec = TensorSpec(
-        distspec.shard(gpc.get_group(ParallelMode.PARALLEL_1D), [-1], [gpc.get_world_size(ParallelMode.PARALLEL_1D)]),
-        ParallelAction(ComputePattern.TP1D))
-    with DistSpecManager.no_grad():
-        for name, mod in model.named_modules():
-            if isinstance(mod, torch.nn.Linear) and 'classifier' not in name:
-                mod.weight.set_spec(spec)

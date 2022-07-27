@@ -13,5 +13,7 @@ def parse_args():
     parser.add_argument('--vocab-file', type=str, required=True)
     parser.add_argument('--epoch', type=int, required=True)
     parser.add_argument('--batch-size', type=int, required=True)
+    parser.add_argument('--save-checkpoint-interval', type=int, required=True)
+    parser.add_argument('--output-dir', type=str, required=True)
     args = parser.parse_args()
     return args
