@@ -6,7 +6,7 @@ from .embed import HiddenParallelEmbedding, HiddenParallelGPTLMHead1D, VocabPara
 from colossalai.nn.layer.wrapper import PipelineSharedModuleWrapper
 from colossalai.core import global_context as gpc
 import inspect
-from colossalai.builder.pipeline import partition_uniform
+from colossalai.pipeline.utils import partition_uniform
 from colossalai import kernel
 from colossalai import nn as col_nn
 import model_zoo.gpt.gpt as col_gpt
