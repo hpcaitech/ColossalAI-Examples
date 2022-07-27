@@ -29,6 +29,7 @@ from itertools import chain
 import time
 import datasets
 import torch
+import torch.distributed as dist
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from colossalai.core import global_context as gpc
@@ -135,6 +136,18 @@ def parse_args():
     )
     parser.add_argument("--weight_decay", type=float, default=0.0, help="Weight decay to use.")
     parser.add_argument("--num_train_epochs", type=int, default=3, help="Total number of training epochs to perform.")
+    parser.add_argument(
+        "--max_train_steps",
+        type=int,
+        default=None,
+        help="Total number of training steps to perform. If provided, overrides num_train_epochs.",
+    )
+    parser.add_argument(
+        "--gradient_accumulation_steps",
+        type=int,
+        default=1,
+        help="Number of updates steps to accumulate before performing a backward/update pass.",
+    )
     parser.add_argument(
         "--lr_scheduler_type",
         type=SchedulerType,
@@ -248,7 +261,7 @@ def main():
     # If passed along, set the training seed now.
     if args.seed is not None:
         set_seed(args.seed)
-        logger.info(f"Seed: {args.seed}")
+        logger.info(f"Rank {dist.get_rank()}: random seed is set to {args.seed}")
 
     # Handle the repository creation
     with barrier_context():
@@ -264,7 +277,7 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    logger.info("Prepare dataset")
+    logger.info("Start preparing dataset", ranks=[0])
     if args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name)
@@ -305,6 +318,7 @@ def main():
                 split=f"train[{args.validation_split_percentage}%:]",
                 **dataset_args,
             )
+    logger.info("Dataset is prepared", ranks=[0])
 
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
@@ -320,13 +334,13 @@ def main():
     else:
         config = CONFIG_MAPPING[args.model_type]()
         logger.warning("You are instantiating a new config instance from scratch.")
-    logger.info("Model config is created")
+    logger.info("Model config has been created", ranks=[0])
 
     if args.model_name_or_path == 'facebook/opt-13b':
         tokenizer = GPT2Tokenizer.from_pretrained(args.model_name_or_path)
     else:
         tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, use_fast=not args.use_slow_tokenizer)
-    logger.info(f"{tokenizer.__class__.__name__} is created")
+    logger.info(f"{tokenizer.__class__.__name__} has been created", ranks=[0])
 
     if args.init_in_cpu:
         init_dev = torch.device('cpu')
@@ -337,10 +351,11 @@ def main():
     if args.model_name_or_path is None or args.model_name_or_path == 'facebook/opt-13b':
         # currently, there has a bug in pretrained opt-13b
         # we can not import it until huggingface fix it
-        logger.info("Training new model from scratch")
+        logger.info("Train a new model from scratch", ranks=[0])
         with ColoInitContext(device=init_dev):
             model = OPTForCausalLM(config)
     else:
+        logger.info("Finetune a pre-trained model", ranks=[0])
         with ColoInitContext(device=init_dev):
             model = OPTForCausalLM.from_pretrained(
                 args.model_name_or_path,
@@ -361,7 +376,7 @@ def main():
                                  init_device=GeminiManager.get_default_device(placement_policy))
     gemini_manager = GeminiManager(placement_policy, chunk_manager)
     model = ZeroDDP(model, gemini_manager)
-    logger.info(f'{model.__class__.__name__} is created')
+    logger.info(f'{model.__class__.__name__} has been created', ranks=[0])
 
     # Preprocessing the datasets.
     # First we tokenize all the texts.
@@ -431,8 +446,8 @@ def main():
     eval_dataset = lm_datasets["validation"]
 
     # Log a few random samples from the training set:
-    for index in random.sample(range(len(train_dataset)), 3):
-        logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
+    # for index in random.sample(range(len(train_dataset)), 3):
+    #     logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
 
     # DataLoaders creation:
     train_dataloader = get_dataloader(train_dataset,
@@ -443,7 +458,7 @@ def main():
     eval_dataloader = DataLoader(eval_dataset,
                                  collate_fn=default_data_collator,
                                  batch_size=args.per_device_eval_batch_size)
-    logger.info("Dataloaders are created")
+    logger.info("Dataloaders have been created", ranks=[0])
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -462,50 +477,68 @@ def main():
     optimizer = HybridAdam(optimizer_grouped_parameters, lr=args.learning_rate)
     optimizer = ZeroOptimizer(optimizer, model, initial_scale=2 ** 14)
 
-    num_update_steps_per_epoch = len(train_dataloader)
-    num_training_steps = args.num_train_epochs * num_update_steps_per_epoch
+    # Scheduler and math around the number of training steps.
+    overrode_max_train_steps = False
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
+    if args.max_train_steps is None:
+        args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
+        overrode_max_train_steps = True
+
     lr_scheduler = get_scheduler(
         name=args.lr_scheduler_type,
         optimizer=optimizer,
         num_warmup_steps=args.num_warmup_steps,
-        num_training_steps=num_training_steps,
+        num_training_steps=args.max_train_steps,
     )
 
-    # Prepare everything with our `accelerator`.
-    engine, train_dataloader, eval_dataloader, lr_scheduler = colossalai.initialize(model, optimizer, None,
-                                                                                    train_dataloader, eval_dataloader,
-                                                                                    lr_scheduler)
+    # We need to recalculate our total training steps as the size of the training dataloader may have changed.
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
+    if overrode_max_train_steps:
+        args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
+    # Afterwards we recalculate our number of training epochs
+    args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
 
     # Train!
     total_batch_size = args.per_device_train_batch_size * gpc.get_world_size(ParallelMode.DATA)
 
-    logger.info("***** Running training *****")
-    logger.info(f"  Num examples = {len(train_dataset)}")
-    logger.info(f"  Num Epochs = {args.num_train_epochs}")
-    logger.info(f"  Instantaneous batch size per device = {args.per_device_train_batch_size}")
-    logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
-    logger.info(f"  Total optimization steps = {num_training_steps}")
+    logger.info("***** Running training *****", ranks=[0])
+    logger.info(f"  Num examples = {len(train_dataset)}", ranks=[0])
+    logger.info(f"  Num Epochs = {args.num_train_epochs}", ranks=[0])
+    logger.info(f"  Instantaneous batch size per device = {args.per_device_train_batch_size}", ranks=[0])
+    logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}", ranks=[0])
+    logger.info(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}", ranks=[0])
+    logger.info(f"  Total optimization steps = {args.max_train_steps}", ranks=[0])
 
     # Only show the progress bar once on each machine.
-
+    progress_bar = tqdm(range(args.max_train_steps), disable=not is_main_process)
     completed_steps = 0
     starting_epoch = 0
+    global_step = 0
 
     for epoch in range(starting_epoch, args.num_train_epochs):
+
+        if completed_steps >= args.max_train_steps:
+            break
+
         model.train()
-
-        progress = tqdm(train_dataloader, disable=not is_main_process)
-
-        for batch in progress:
+        for step, batch in enumerate(train_dataloader):
             batch = {k: v.cuda() for k, v in batch.items()}
-
-            outputs = engine(**batch)
+            outputs = model(**batch)
             loss = outputs['loss']
-            engine.backward(loss)
-            engine.step()
-            lr_scheduler.step()
-            engine.zero_grad()
-            completed_steps += 1
+            optimizer.backward(loss)
+
+            if step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1:
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
+                progress_bar.update(1)
+                completed_steps += 1
+
+            global_step += 1
+            logger.info("Global step {} finished".format(global_step + 1), ranks=[0])
+
+            if completed_steps >= args.max_train_steps:
+                break
 
         model.eval()
         losses = []
@@ -514,8 +547,8 @@ def main():
                 batch = {k: v.cuda() for k, v in batch.items()}
                 outputs = model(**batch)
 
-            loss = outputs['loss'].unsqueeze(0)
-            losses.append(loss)
+        loss = outputs['loss'].unsqueeze(0)
+        losses.append(loss)
 
         losses = torch.cat(losses)
         losses = losses[:len(eval_dataset)]
@@ -525,11 +558,17 @@ def main():
         except OverflowError:
             perplexity = float("inf")
 
-        logger.info(f"epoch {epoch}: perplexity: {perplexity} eval_loss: {eval_loss}", ranks=[0])
+        logger.info(f"Epoch {epoch}: perplexity: {perplexity} eval_loss: {eval_loss}", ranks=[0])
 
     if args.output_dir is not None:
-        save_checkpoint(args.output_dir, completed_steps, model)
-        # load_checkpoint(args.output_dir, completed_steps, model, strict=False)
+        model_state = model.state_dict()
+        if is_main_process:
+            torch.save(model_state, args.output_dir + '/epoch_{}_model.pth'.format(completed_steps))
+        dist.barrier()
+        # load_state = torch.load(args.output_dir + '/epoch_{}_model.pth'.format(completed_steps))
+        # model.load_state_dict(load_state, strict=False)
+
+    logger.info("Training finished", ranks=[0])
 
 
 if __name__ == "__main__":
