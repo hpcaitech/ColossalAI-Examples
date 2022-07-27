@@ -9,7 +9,7 @@ from colossalai.context import ParallelMode
 from colossalai.kernel import LayerNorm
 from colossalai.nn.layer.wrapper import PipelineSharedModuleWrapper
 from colossalai.logging import get_dist_logger
-from colossalai.builder.pipeline import partition_uniform
+from colossalai.pipeline.utils import partition_uniform
 
 
 class BertForPretrain(nn.Module):
