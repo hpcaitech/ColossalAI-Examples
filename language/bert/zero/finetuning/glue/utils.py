@@ -15,8 +15,6 @@ from colossalai.nn.optimizer import HybridAdam
 from colossalai.nn.lr_scheduler import LinearWarmupLR
 from colossalai.utils import get_dataloader
 from transformers import BertForSequenceClassification
-from colossalai.utils.checkpoint import save_checkpoint
-from pathlib import Path
 
 __all__ = [
     'get_model', 'get_optimizer', 'get_lr_scheduler', 'get_train_dataloader', 'run_train', 'get_eval_dataloader',

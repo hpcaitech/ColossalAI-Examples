@@ -102,9 +102,8 @@ def main():
 
             global_step += 1
 
-        # TODO: fix the model checkpointing
-        # if epoch % args.save_checkpoint_interval == 0:
-        #     save_checkpoint(model, args.output_dir, f'epoch{epoch}')
+        if epoch % args.save_checkpoint_interval == 0:
+            save_checkpoint(model, args.output_dir, f'epoch{epoch}')
 
 
 if __name__ == '__main__':
