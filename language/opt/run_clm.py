@@ -342,7 +342,6 @@ def main():
 
     # enable graident checkpointing
     model.gradient_checkpointing_enable()
-    model = model.half().cuda()
 
     chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024 ** 2, 32)
     pg = ProcessGroup()
