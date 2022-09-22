@@ -9,7 +9,7 @@ You may refer to [our documentation on mixed precision training](https://colossa
 # Prerequisite
 
 ```shell
-pip install timm scipy
+pip install timm scipy titans
 ```
 
 # How to run
