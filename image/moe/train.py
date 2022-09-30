@@ -1,4 +1,5 @@
 import os
+import time
 
 import colossalai
 import torch
@@ -14,8 +15,8 @@ from colossalai.trainer.hooks import (AccuracyHook, LogMemoryByEpochHook,
                                       LogMetricByStepHook,
                                       LogTimingByEpochHook, LossHook,
                                       LRSchedulerHook, ThroughputHook)
-from colossalai.utils import MultiTimer, get_dataloader
-from colossalai.nn.loss import MoeCrossEntropyLoss
+from colossalai.utils import MultiTimer, get_dataloader, get_current_device
+from colossalai.nn.loss import MoeLoss
 from titans.model.moe import Widenet, ViTMoE
 from colossalai.context import MOE_CONTEXT
 
@@ -50,6 +51,7 @@ def build_cifar(batch_size):
 
 
 def train_cifar():
+    torch.backends.cudnn.deterministic = True
     args = colossalai.get_default_parser().parse_args()
     colossalai.launch_from_torch(config=args.config)  # initialize colossal environment
 
@@ -57,6 +59,9 @@ def train_cifar():
     if hasattr(gpc.config, 'LOG_PATH'):
         if gpc.get_global_rank() == 0:
             log_path = gpc.config.LOG_PATH
+            t = time.localtime()
+            t_str = time.strftime("%H:%M:%S", t)
+            log_path = log_path + t_str
             if not os.path.exists(log_path):
                 os.mkdir(log_path)
             logger.log_to_file(log_path)
@@ -75,9 +80,10 @@ def train_cifar():
         d_kv=64,
         d_ff=512
     )
+    model = model.to(get_current_device())
 
     train_dataloader, test_dataloader = build_cifar(gpc.config.BATCH_SIZE // gpc.data_parallel_size)
-    criterion = MoeCrossEntropyLoss(aux_weight=0.01, label_smoothing=0.1)
+    criterion = MoeLoss(aux_weight=0.01, loss_fn=torch.nn.CrossEntropyLoss, label_smoothing=0.1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=gpc.config.LEARNING_RATE,
                                   weight_decay=gpc.config.WEIGHT_DECAY)
     steps_per_epoch = len(train_dataloader)
