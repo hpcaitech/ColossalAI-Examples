@@ -8,12 +8,12 @@ from colossalai.nn.optimizer import HybridAdam
 from transformers import GPT2Config, GPT2LMHeadModel
 from time import time
 from functools import partial
-from colossalai.tensor import ChunkManager
-from colossalai.gemini import GeminiManager
+from colossalai.gemini import ChunkManager, GeminiManager
 from colossalai.utils.model.colo_init_context import ColoInitContext
 from colossalai.utils import get_current_device
 from colossalai.nn.parallel import ZeroDDP
 from colossalai.zero import ZeroOptimizer
+from colossalai.tensor import ProcessGroup
 
 
 class GPTLMModel(nn.Module):
@@ -84,6 +84,7 @@ def main():
     PLACEMENT_POLICY = 'cpu'
     disable_existing_loggers()
     colossalai.launch_from_torch(config={})
+    pg = ProcessGroup()
     logger = get_dist_logger()
 
     logger.info(get_mem_info(), ranks=[0])
@@ -94,7 +95,7 @@ def main():
     logger.info(f'Model numel: {numel}', ranks=[0])
     get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
     chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
-    chunk_manager = ChunkManager(chunk_size, enable_distributed_storage=True,
+    chunk_manager = ChunkManager(chunk_size, pg, enable_distributed_storage=True,
                                  init_device=GeminiManager.get_default_device(PLACEMENT_POLICY))
     gemini_manager = GeminiManager(PLACEMENT_POLICY, chunk_manager)
     model = ZeroDDP(model, gemini_manager)

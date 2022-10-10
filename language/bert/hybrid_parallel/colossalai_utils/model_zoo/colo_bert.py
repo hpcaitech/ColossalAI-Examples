@@ -21,7 +21,7 @@ from colossalai.logging import get_dist_logger
 from colossalai.context.parallel_mode import ParallelMode
 from colossalai.nn.layer.wrapper import PipelineSharedModuleWrapper
 from colossalai.utils import get_current_device
-from colossalai.builder.pipeline import partition_uniform
+from colossalai.pipeline.utils import partition_uniform
 
 
 class BertSelfOutput(nn.Module):

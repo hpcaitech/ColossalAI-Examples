@@ -242,33 +242,14 @@ class MetricLogger(object):
             end = time.time()
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-        print('{} Total time: {} ({:.4f} s / it)'.format(header, total_time_str, total_time / len(iterable)))
-
-
-# def get_sha():
-#     cwd = os.path.dirname(os.path.abspath(__file__))
-#
-#     def _run(command):
-#         return subprocess.check_output(command, cwd=cwd).decode('ascii').strip()
-#     sha = 'N/A'
-#     diff = "clean"
-#     branch = 'N/A'
-#     try:
-#         sha = _run(['git', 'rev-parse', 'HEAD'])
-#         subprocess.check_output(['git', 'diff'], cwd=cwd)
-#         diff = _run(['git', 'diff-index', 'HEAD'])
-#         diff = "has uncomitted changes" if diff else "clean"
-#         branch = _run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
-#     except Exception:
-#         pass
-#     message = f"sha: {sha}, status: {diff}, branch: {branch}"
-#     return message
+        print('{} Total time: {} ({:.4f} s / it)'.format(
+            header, total_time_str, total_time / len(iterable)))
 
 
 def collate_fn(batch):
     batch = list(zip(*batch))
     batch[0] = nested_tensor_from_tensor_list(batch[0])
-    return batch
+    return tuple(batch)
 
 
 def _max_by_axis(the_list):
@@ -326,8 +307,6 @@ def nested_tensor_from_tensor_list(tensor_list: List[Tensor]):
     else:
         raise ValueError('not supported')
     return NestedTensor(tensor, mask)
-    # return tensor, mask
-
 
 
 # _onnx_nested_tensor_from_tensor_list() is an implementation of

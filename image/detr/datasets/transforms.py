@@ -14,6 +14,7 @@ def crop(image, target, region):
 
     target = target.copy()
     i, j, h, w = region
+
     target["size"] = torch.tensor([h, w])
 
     fields = ["labels", "area", "iscrowd"]
@@ -135,13 +136,13 @@ def pad(image, target, padding):
     return padded_image, target
 
 
-# class RandomCrop(object):
-#     def __init__(self, size):
-#         self.size = size
-#
-#     def __call__(self, img, target):
-#         region = T.RandomCrop.get_params(img, self.size)
-#         return crop(img, target, region)
+class RandomCrop(object):
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, img, target):
+        region = T.RandomCrop.get_params(img, self.size)
+        return crop(img, target, region)
 
 
 class RandomSizeCrop(object):
@@ -156,16 +157,16 @@ class RandomSizeCrop(object):
         return crop(img, target, region)
 
 
-# class CenterCrop(object):
-#     def __init__(self, size):
-#         self.size = size
-#
-#     def __call__(self, img, target):
-#         image_width, image_height = img.size
-#         crop_height, crop_width = self.size
-#         crop_top = int(round((image_height - crop_height) / 2.))
-#         crop_left = int(round((image_width - crop_width) / 2.))
-#         return crop(img, target, (crop_top, crop_left, crop_height, crop_width))
+class CenterCrop(object):
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, img, target):
+        image_width, image_height = img.size
+        crop_height, crop_width = self.size
+        crop_top = int(round((image_height - crop_height) / 2.))
+        crop_left = int(round((image_width - crop_width) / 2.))
+        return crop(img, target, (crop_top, crop_left, crop_height, crop_width))
 
 
 class RandomHorizontalFlip(object):
@@ -189,14 +190,14 @@ class RandomResize(object):
         return resize(img, target, size, self.max_size)
 
 
-# class RandomPad(object):
-#     def __init__(self, max_pad):
-#         self.max_pad = max_pad
-#
-#     def __call__(self, img, target):
-#         pad_x = random.randint(0, self.max_pad)
-#         pad_y = random.randint(0, self.max_pad)
-#         return pad(img, target, (pad_x, pad_y))
+class RandomPad(object):
+    def __init__(self, max_pad):
+        self.max_pad = max_pad
+
+    def __call__(self, img, target):
+        pad_x = random.randint(0, self.max_pad)
+        pad_y = random.randint(0, self.max_pad)
+        return pad(img, target, (pad_x, pad_y))
 
 
 class RandomSelect(object):
@@ -220,13 +221,13 @@ class ToTensor(object):
         return F.to_tensor(img), target
 
 
-# class RandomErasing(object):
-#
-#     def __init__(self, *args, **kwargs):
-#         self.eraser = T.RandomErasing(*args, **kwargs)
-#
-#     def __call__(self, img, target):
-#         return self.eraser(img), target
+class RandomErasing(object):
+
+    def __init__(self, *args, **kwargs):
+        self.eraser = T.RandomErasing(*args, **kwargs)
+
+    def __call__(self, img, target):
+        return self.eraser(img), target
 
 
 class Normalize(object):

@@ -8,7 +8,7 @@ from colossalai.registry import LAYERS, MODELS
 from colossalai.logging import get_dist_logger
 from colossalai.core import global_context as gpc
 from colossalai.context import ParallelMode
-from colossalai.builder.pipeline import partition_uniform
+from colossalai.pipeline.utils import partition_uniform
 from torch import dtype, nn
 from model_zoo.vit.vit import ViTBlock, ViTEmbedding, ViTHead
 
