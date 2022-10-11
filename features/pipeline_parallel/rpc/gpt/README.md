@@ -17,6 +17,10 @@ python3 1f1b.py --world_size=4 --num_microbatches=8 --device="cuda" --batch_size
 
 > for customized world_size, please adjust partition strategy
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> e1be6c9181ae85eca5bea1861214a93f192bbf53
 ## run interleaved 1F1B
 
 ```bash
@@ -25,6 +29,7 @@ python3 1f1b.py --world_size=2 --chunk=2 --num_microbatches=8 --device="cuda" --
 
 > for customized world_size, please adjust partition strategy
 
+<<<<<<< HEAD
 ## run baseline (pippy)
 
 Install Pippy first: https://github.com/pytorch/tau
@@ -40,6 +45,10 @@ python3 baseline.py --world_size=5 --schedule="1F1B" --batch_size=16 --chunk=8
 > pippy need an extra rank for controlling, so if your original configure is "world_size==4", use "world_size=5" in pippy
 
 ## help 
+=======
+
+## help
+>>>>>>> e1be6c9181ae85eca5bea1861214a93f192bbf53
 run `python3 1f1b.py --help` for available config of the pipeline:
 
 ```
