@@ -5,7 +5,7 @@ Example of training gpt-2 on gpt_data through different PP strategies.
 ## import data
 
 ```bash
-export DATA=/data/scratch/gpt_data/small-gpt-dataset.json
+export DATA=/path/small-gpt-dataset.json
 ```
 
 
@@ -17,7 +17,6 @@ python3 1f1b.py --world_size=4 --num_microbatches=8 --device="cuda" --batch_size
 
 > for customized world_size, please adjust partition strategy
 
-
 ## run interleaved 1F1B
 
 ```bash
@@ -26,8 +25,21 @@ python3 1f1b.py --world_size=2 --chunk=2 --num_microbatches=8 --device="cuda" --
 
 > for customized world_size, please adjust partition strategy
 
+## run baseline (pippy)
 
-## help
+Install Pippy first: https://github.com/pytorch/tau
+
+Just copy the folder `pippy` and move to the site-packages of your current *Python Interpreter*.
+
+Baseline (pippy) is not stable for the problem of communication. Rerun the program to acquire value of performance :D
+
+```bash
+python3 baseline.py --world_size=5 --schedule="1F1B" --batch_size=16 --chunk=8
+```
+
+> pippy need an extra rank for controlling, so if your original configure is "world_size==4", use "world_size=5" in pippy
+
+## help 
 run `python3 1f1b.py --help` for available config of the pipeline:
 
 ```
