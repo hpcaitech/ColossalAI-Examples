@@ -17,10 +17,6 @@ python3 1f1b.py --world_size=4 --num_microbatches=8 --device="cuda" --batch_size
 
 > for customized world_size, please adjust partition strategy
 
-<<<<<<< HEAD
-=======
-
->>>>>>> e1be6c9181ae85eca5bea1861214a93f192bbf53
 ## run interleaved 1F1B
 
 ```bash
