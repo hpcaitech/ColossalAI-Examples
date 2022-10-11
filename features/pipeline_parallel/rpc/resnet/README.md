@@ -5,7 +5,7 @@ Example of training resnet on cifar through different PP strategies.
 ## import data
 
 ```bash
-export DATA=/data/scratch/cifar-10
+export DATA=/path/cifar-10
 ```
 
 ## run Fill Drain
