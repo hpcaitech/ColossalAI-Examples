@@ -1,5 +1,8 @@
 from colossalai.utils import get_dataloader, get_current_device
 from colossalai.pipeline.rpc.utils import rpc_run, parse_args
+from colossalai.pipeline.rpc import OneFOneBPipelineEngine
+from colossalai.pipeline.pipeline_process_group import ppg
+from colossalai.pipeline.pipelinable import PipelinableContext
 from colossalai.logging import get_dist_logger, disable_existing_loggers
 from colossalai.utils.model.colo_init_context import ColoInitContext
 from datasets import load_dataset
@@ -7,12 +10,73 @@ from torch.utils.data import DataLoader
 from transformers import AutoConfig, AutoTokenizer, OPTForCausalLM, default_data_collator
 from itertools import chain
 
+import torch
+
 # TODO: Set configs with cmd
 # dataset_path = "/data/scratch/huggingface/datasets/wikitext/wikitext-2/"
 dataset_path = "wikitext"
 dataset_config = "wikitext-2-raw-v1"
 model_name = "facebook/opt-125m"
 max_block_size = 1024
+
+def get_number_of_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+def partition(pp_rank: int, chunk: int, stage_num: int):
+    config = AutoConfig.from_pretrained(model_name)
+    
+    ppg.initialise_lock.acquire()
+    pipelinable = PipelinableContext(policy='uniform')
+    with pipelinable:
+        model = OPTForCausalLM.from_pretrained(
+                model_name,
+                from_tf=bool(".ckpt" in model_name),
+                config=config,
+                local_files_only=False
+            )
+        
+    print(dict(model.named_modules()))
+
+    #exec_seq = ['embed', mask_function, 'blocks.0', 'blocks.1', mask_function, 'blocks.2', 'blocks.3', 'blocks.4', 'blocks.5', (mask_function, "front"), \
+    #        'blocks.6', 'blocks.7', 'blocks.8', 'blocks.9', 'blocks.10', 'blocks.11', 'norm', 'head']
+    exec_seq = None
+    pipelinable.to_layer_list(exec_seq)
+    
+    partition = pipelinable.partition(1, stage_num, pp_rank)
+    print(f"rank_{pp_rank} {get_number_of_params(partition) * 4 // 1024 ** 2}M")
+    
+    ppg.initialise_lock.release()
+    
+    return partition
+
+
+# world_size = 4 for uniform
+def data_process_func(pp_rank: int, args_kwargs):
+    if pp_rank == 0:
+        args = args_kwargs[0]
+        kwargs = args_kwargs[1]
+        return args, kwargs
+
+    elif pp_rank == 1:
+        x = args_kwargs[0]
+        attention_mask = args_kwargs[1]
+        args = [x]
+        kwargs = {"attention_mask" : attention_mask}
+        return args, kwargs
+    
+    elif pp_rank == 2:
+        x = args_kwargs[0]
+        attention_mask = args_kwargs[1]
+        args = [x]
+        kwargs = {"attention_mask" : attention_mask}
+        return args, kwargs
+
+    elif pp_rank == 3:
+        x = args_kwargs[0]
+        attention_mask = args_kwargs[1]
+        args = [x]
+        kwargs = {"attention_mask" : attention_mask}
+        return args, kwargs
 
 def run_master(args):
     logger = get_dist_logger()
@@ -29,9 +93,6 @@ def run_master(args):
     logger.info("Start preparing dataset", ranks=[0])
     raw_datasets = load_dataset(dataset_path, dataset_config)
     logger.info("Dataset is prepared", ranks=[0])
-    
-    config = AutoConfig.from_pretrained(model_name)
-    logger.info("Model config has been created", ranks=[0])
     
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     logger.info(f"{tokenizer.__class__.__name__} has been created", ranks=[0])
@@ -83,7 +144,6 @@ def run_master(args):
     logger.info("Dataloaders is creating", ranks=[0])
     train_dataloader = get_dataloader(train_dataset,
                                       shuffle=True,
-                                      add_sampler=True,
                                       drop_last=True,
                                       pin_memory=True,
                                       collate_fn=default_data_collator,
@@ -92,6 +152,29 @@ def run_master(args):
                                  collate_fn=default_data_collator,
                                  batch_size=batch_size)
     logger.info("Dataloaders have been created", ranks=[0])
+    
+    # engine
+    engine = OneFOneBPipelineEngine(
+        partition_fn=partition,
+        stage_num=stage_num,
+        num_microbatches=num_microbatches,
+        device=device,
+        chunk=chunk,
+        criterion=None,
+        metric=None,
+        checkpoint=False,
+        data_process_func=data_process_func
+    )
+    
+    engine.initialize_optimizer(getattr(torch.optim, args.optimizer), lr=1e-3)
+    
+    # choose kernel
+    for b in train_dataloader:
+        batch = {'input_ids': b['input_ids'],
+            'attention_mask': b['attention_mask']}
+        labels = b['labels']
+        engine.forward_backward(batch, labels)
+        break
 
 if __name__ == '__main__':
     disable_existing_loggers()
