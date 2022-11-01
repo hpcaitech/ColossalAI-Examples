@@ -1,5 +1,7 @@
 # ZeRO
 
+This tutorial works for ColossalAI v0.1.10.
+
 ## Prepare Model
 
 In this example, we use `Hugging Face Transformers`. You have to install `transformers` before running this example. We will take `GPT2 Medium` as an example here.
