@@ -63,9 +63,9 @@ def partition(pp_rank: int, chunk: int, stage_num: int):
                 local_files_only=False
             )
 
-    #exec_seq = ['embed', mask_function, 'blocks.0', 'blocks.1', mask_function, 'blocks.2', 'blocks.3', 'blocks.4', 'blocks.5', (mask_function, "front"), \
-    #        'blocks.6', 'blocks.7', 'blocks.8', 'blocks.9', 'blocks.10', 'blocks.11', 'norm', 'head']
-    exec_seq = ['model.decoder', 'lm_head']
+    #exec_seq = ['model.decoder.embed_tokens', 'model.decoder.embed_positions', 'model.decoder.final_layer_norm',
+    #            'model.decoder.layers.0', 'model.lm_head']
+    exec_seq = ['model', 'lm_head']
     pipelinable.to_layer_list(exec_seq)
     
     partition = pipelinable.partition(1, stage_num, pp_rank)
@@ -202,24 +202,24 @@ def run_master(args):
         engine.forward_backward(batch=batch, labels=labels)
         break
     
-    for epoch_id in range(epoch):
-        data_iter = tqdm(train_dataloader, desc=f'[Train->Epoch {epoch_id}]')
+    # for epoch_id in range(epoch):
+    #     data_iter = tqdm(train_dataloader, desc=f'[Train->Epoch {epoch_id}]')
 
-        times = []
-        for b in data_iter:
-            batch = {'input_ids': b['input_ids'],
-                'attention_mask': b['attention_mask']}
-            labels = b['labels']
-            s = time.time()
-            engine.forward_backward(batch=batch, labels=labels)
-            cost_time = time.time() - s
-            times.append(cost_time)
+    #     times = []
+    #     for b in data_iter:
+    #         batch = {'input_ids': b['input_ids'],
+    #             'attention_mask': b['attention_mask']}
+    #         labels = b['labels']
+    #         s = time.time()
+    #         engine.forward_backward(batch=batch, labels=labels)
+    #         cost_time = time.time() - s
+    #         times.append(cost_time)
 
-            if len(times) == 10:
-                break
+    #         if len(times) == 10:
+    #             break
 
-        print("avg cost time : {}s".format(sum(times) / len(times)))
-        break
+    #     print("avg cost time : {}s".format(sum(times) / len(times)))
+    #     break
 
 if __name__ == '__main__':
     disable_existing_loggers()
