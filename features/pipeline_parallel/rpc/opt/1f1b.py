@@ -5,12 +5,16 @@ from colossalai.pipeline.pipeline_process_group import ppg
 from colossalai.pipeline.pipelinable import PipelinableContext
 from colossalai.logging import get_dist_logger, disable_existing_loggers
 from colossalai.utils.model.colo_init_context import ColoInitContext
+from colossalai import nn as col_nn
 from datasets import load_dataset
 from torch.utils.data import DataLoader
+from torch.nn import CrossEntropyLoss
 from transformers import AutoConfig, AutoTokenizer, OPTForCausalLM, default_data_collator
+from tqdm.auto import tqdm
 from itertools import chain
 
 import torch
+import time
 
 # TODO: Set configs with cmd
 # dataset_path = "/data/scratch/huggingface/datasets/wikitext/wikitext-2/"
@@ -19,8 +23,32 @@ dataset_config = "wikitext-2-raw-v1"
 model_name = "facebook/opt-125m"
 max_block_size = 1024
 
+class OPTLoss(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.loss = CrossEntropyLoss()
+
+    def forward(self, logits, labels):
+        shift_logits = logits[..., :-1, :].contiguous()
+        shift_labels = labels[..., 1:].contiguous()
+        # Flatten the tokens
+        return self.loss(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+    
+
 def get_number_of_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+def mask_function(attention_mask=None):
+    batch_size = ppg.args.batch_size
+    num_microbatches = ppg.args.num_microbatches
+    # print(pytree_map(attention_mask, lambda x : x.shape, process_types=torch.Tensor))
+    if attention_mask is not None:
+        microbatch_size = batch_size // num_microbatches
+        attention_mask = attention_mask.view(microbatch_size, -1)
+        attention_mask = col_nn.partition_batch(attention_mask)
+        attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
+        attention_mask = (1.0 - attention_mask) * -10000.0
+    return attention_mask
 
 def partition(pp_rank: int, chunk: int, stage_num: int):
     config = AutoConfig.from_pretrained(model_name)
@@ -34,12 +62,10 @@ def partition(pp_rank: int, chunk: int, stage_num: int):
                 config=config,
                 local_files_only=False
             )
-        
-    print(dict(model.named_modules()))
 
     #exec_seq = ['embed', mask_function, 'blocks.0', 'blocks.1', mask_function, 'blocks.2', 'blocks.3', 'blocks.4', 'blocks.5', (mask_function, "front"), \
     #        'blocks.6', 'blocks.7', 'blocks.8', 'blocks.9', 'blocks.10', 'blocks.11', 'norm', 'head']
-    exec_seq = None
+    exec_seq = ['model.decoder', 'lm_head']
     pipelinable.to_layer_list(exec_seq)
     
     partition = pipelinable.partition(1, stage_num, pp_rank)
@@ -160,7 +186,7 @@ def run_master(args):
         num_microbatches=num_microbatches,
         device=device,
         chunk=chunk,
-        criterion=None,
+        criterion=OPTLoss(),
         metric=None,
         checkpoint=False,
         data_process_func=data_process_func
@@ -173,7 +199,26 @@ def run_master(args):
         batch = {'input_ids': b['input_ids'],
             'attention_mask': b['attention_mask']}
         labels = b['labels']
-        engine.forward_backward(batch, labels)
+        engine.forward_backward(batch=batch, labels=labels)
+        break
+    
+    for epoch_id in range(epoch):
+        data_iter = tqdm(train_dataloader, desc=f'[Train->Epoch {epoch_id}]')
+
+        times = []
+        for b in data_iter:
+            batch = {'input_ids': b['input_ids'],
+                'attention_mask': b['attention_mask']}
+            labels = b['labels']
+            s = time.time()
+            engine.forward_backward(batch=batch, labels=labels)
+            cost_time = time.time() - s
+            times.append(cost_time)
+
+            if len(times) == 10:
+                break
+
+        print("avg cost time : {}s".format(sum(times) / len(times)))
         break
 
 if __name__ == '__main__':
