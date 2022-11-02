@@ -8,7 +8,7 @@ from colossalai.nn.optimizer import HybridAdam
 from transformers import GPT2Config, GPT2LMHeadModel
 from time import time
 from functools import partial
-from colossalai.gemini import ChunkManager, GeminiManager
+from colossalai.gemini import ChunkManager, GeminiManager, search_chunk_configuration
 from colossalai.utils.model.colo_init_context import ColoInitContext
 from colossalai.utils import get_current_device
 from colossalai.nn.parallel import ZeroDDP
@@ -94,8 +94,10 @@ def main():
     numel = sum([p.numel() for p in model.parameters()])
     logger.info(f'Model numel: {numel}', ranks=[0])
     get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
-    chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
-    chunk_manager = ChunkManager(chunk_size, pg, enable_distributed_storage=True,
+    # chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
+    config_dict, _ = search_chunk_configuration(model, search_range_mb=1, search_interval_byte=100)
+    # logger.info(f'chunk contains {config_dict[]} elem')
+    chunk_manager = ChunkManager(config_dict,
                                  init_device=GeminiManager.get_default_device(PLACEMENT_POLICY))
     gemini_manager = GeminiManager(PLACEMENT_POLICY, chunk_manager)
     model = ZeroDDP(model, gemini_manager)
