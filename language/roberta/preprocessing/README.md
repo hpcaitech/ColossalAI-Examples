@@ -67,6 +67,13 @@ python sentence_split.py --input_path /orginal_corpus --output_path /shard --sha
 python tokenize_mask.py --input_path /shard --output_path /h5 --tokenizer_path /roberta --backend python
 # This step is time consuming and is mainly spent on mask
 ```
+
+**[optional but recommended]**: the C++ backend with `pybind11` can provide faster speed
+
+```shell
+make
+```
+
 * `--input_path`: location of all shard with split sentences, e.g., /shard/0.txt, /shard/1.txt ...
 * `--output_path`: location of all h5 with token_id, input_mask, segment_ids and masked_lm_positions, e.g., /h5/0.h5, /h5/1.h5 ...
 * `--tokenizer_path`: tokenizer path contains huggingface tokenizer.json. Download config.json, special_tokens_map.json, vocab.txt and tokenzier.json from [hfl/chinese-roberta-wwm-ext-large](https://huggingface.co/hfl/chinese-roberta-wwm-ext-large/tree/main) 
