@@ -1,4 +1,3 @@
-
 import colossalai
 import psutil
 import torch
@@ -108,9 +107,6 @@ def main():
         from colossalai.gemini import ChunkManager, GeminiManager
         chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
         chunk_manager = ChunkManager(chunk_size, pg, enable_distributed_storage=True, init_device=GeminiManager.get_default_device(PLACEMENT_POLICY))
-
-    if version.parse(torch.__version__) > version.parse("0.1.11"):
-        logger.error(f'{torch.__version__} may not supported, please use torch version 0.1.11')
         
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
 
