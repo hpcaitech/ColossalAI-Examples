@@ -8,13 +8,13 @@ from colossalai.nn.optimizer import HybridAdam
 from transformers import GPT2Config, GPT2LMHeadModel
 from time import time
 from functools import partial
-from colossalai.gemini import ChunkManager, GeminiManager
 from colossalai.utils.model.colo_init_context import ColoInitContext
 from colossalai.utils import get_current_device
 from colossalai.nn.parallel import ZeroDDP
 from colossalai.zero import ZeroOptimizer
 from colossalai.tensor import ProcessGroup
 
+from packaging import version
 
 class GPTLMModel(nn.Module):
     def __init__(self, hidden_size=768, num_layers=12, num_attention_heads=12, max_seq_len=1024, vocab_size=50257, checkpoint=False):
@@ -81,7 +81,7 @@ def main():
     SEQ_LEN = 1024
     VOCAB_SIZE = 50257
     NUM_STEPS = 10
-    PLACEMENT_POLICY = 'cpu'
+    PLACEMENT_POLICY = 'auto'
     disable_existing_loggers()
     colossalai.launch_from_torch(config={})
     pg = ProcessGroup()
@@ -94,12 +94,29 @@ def main():
     numel = sum([p.numel() for p in model.parameters()])
     logger.info(f'Model numel: {numel}', ranks=[0])
     get_tflops_func = partial(get_tflops, numel, BATCH_SIZE, SEQ_LEN)
-    chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
-    chunk_manager = ChunkManager(chunk_size, pg, enable_distributed_storage=True,
-                                 init_device=GeminiManager.get_default_device(PLACEMENT_POLICY))
-    gemini_manager = GeminiManager(PLACEMENT_POLICY, chunk_manager)
-    model = ZeroDDP(model, gemini_manager)
+
+    cai_version = colossalai.__version__
+    logger.info(f'using Colossal-AI version {cai_version}')
+    if version.parse(cai_version) > version.parse("0.1.10"):
+        from colossalai.gemini import GeminiManager
+        from colossalai.gemini.chunk import init_chunk_manager
+        chunk_manager = init_chunk_manager(
+            model=model,
+            init_device=get_current_device(),
+            search_range_mb=32
+        )
+        gemini_manager = GeminiManager(PLACEMENT_POLICY, chunk_manager)
+        model = ZeroDDP(model, gemini_manager, pin_memory=True)
+    elif version.parse(cai_version) <= version.parse("0.1.10") and version.parse(cai_version) >= version.parse("0.1.9"):
+        from colossalai.gemini import ChunkManager, GeminiManager
+        chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
+        chunk_manager = ChunkManager(chunk_size, pg, enable_distributed_storage=True, init_device=GeminiManager.get_default_device(PLACEMENT_POLICY))
+
+    if version.parse(torch.__version__) > version.parse("0.1.11"):
+        logger.error(f'{torch.__version__} may not supported, please use torch version 0.1.11')
+        
     logger.info(get_mem_info(prefix='After init model, '), ranks=[0])
+
     logger.info(chunk_manager, ranks=[0])
 
     # build criterion
