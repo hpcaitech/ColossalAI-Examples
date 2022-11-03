@@ -98,12 +98,15 @@ def main():
     cai_version = colossalai.__version__
     logger.info(f'using Colossal-AI version {cai_version}')
     if version.parse(cai_version) > version.parse("0.1.10"):
-        from colossalai.gemini import ChunkManager, GeminiManager, search_chunk_configuration
-        config_dict, _ = search_chunk_configuration(model, search_range_mb=1, search_interval_byte=100)
-        chunk_manager = ChunkManager(config_dict,
-                                    init_device=GeminiManager.get_default_device(PLACEMENT_POLICY))
+        from colossalai.gemini import GeminiManager
+        from colossalai.gemini.chunk import init_chunk_manager
+        chunk_manager = init_chunk_manager(
+            model=model,
+            init_device=get_current_device(),
+            search_range_mb=32
+        )
         gemini_manager = GeminiManager(PLACEMENT_POLICY, chunk_manager)
-        model = ZeroDDP(model, gemini_manager)
+        model = ZeroDDP(model, gemini_manager, pin_memory=True)
     elif version.parse(cai_version) <= version.parse("0.1.10") and version.parse(cai_version) >= version.parse("0.1.9"):
         from colossalai.gemini import ChunkManager, GeminiManager
         chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
