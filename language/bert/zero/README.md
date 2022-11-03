@@ -1,5 +1,7 @@
 ## Train BERT with ZeRO
 
+![Still In Progress](https://img.shields.io/badge/-Still%20In%20Progress-orange)
+
 ### About ZeRO
 
 Zero redundancy optimizer is a memory-optimization method for large-scale model training. 
@@ -13,7 +15,7 @@ More details can be found in our [documentation](https://www.colossalai.org/docs
 ### Data Preparation
 
 You need to follow the [documentation](../preprocessing/README.md) in the `preprocessing folder` to preprocess the WikiPedia dataset.
-You should obtain a `wikipedia` folder. Use symbolic link to link it to the current directory (i.e. `ln -s ../preprocessing/wikipedia/pretrain ./pretrain_data` )
+You should obtain a `wikipedia` folder. Use symbolic link to link it to the current directory (i.e. `ln -s ../preprocessing/pretrain ./pretrain_data` )
 
 ### Execute Pretraining
 
@@ -50,8 +52,8 @@ Reproduced results:
 
 | Metric | Value |
 | -      | -     |
-| F1     | 89.6  |
-| Accurarcy | 85.3 |
+| F1     | 89.1  |
+| Accurarcy | 84.31 |
 
 
 
