@@ -12,6 +12,8 @@ from torch.nn import CrossEntropyLoss
 from transformers import AutoConfig, AutoTokenizer, OPTForCausalLM, default_data_collator
 from tqdm.auto import tqdm
 from itertools import chain
+from functools import partial
+from colossalai.fx import ColoTracer
 
 import torch
 import time
@@ -34,49 +36,74 @@ class OPTLoss(torch.nn.Module):
         # Flatten the tokens
         return self.loss(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
     
-
 def get_number_of_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def mask_function(attention_mask=None):
-    batch_size = ppg.args.batch_size
-    num_microbatches = ppg.args.num_microbatches
-    # print(pytree_map(attention_mask, lambda x : x.shape, process_types=torch.Tensor))
-    if attention_mask is not None:
-        microbatch_size = batch_size // num_microbatches
-        attention_mask = attention_mask.view(microbatch_size, -1)
-        attention_mask = col_nn.partition_batch(attention_mask)
-        attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
-        attention_mask = (1.0 - attention_mask) * -10000.0
-    return attention_mask
+def even_split(lst, n):
+    res = []
+    size = len(lst) // n
+    remain = len(lst) % n
+    start = 0
+    for i in range(0, n):
+        if i < remain:
+            res.append(lst[start:start+size+1])
+            start += size + 1
+        else:
+            res.append(lst[start:start+size])
+            start += size
+    return res
 
-def partition(pp_rank: int, chunk: int, stage_num: int):
-    config = AutoConfig.from_pretrained(model_name)
+def set_stage_output(mod_graph, nodes, start_node, end_node, next_start, next_end):
+    pass
+
+def create_partition_module(pp_rank: int, stage_num: int, model, data_kwargs):
+    tracer = ColoTracer()
+    meta_args = {k: v.to('meta') for k, v in data_kwargs.items()}
+    graph = tracer.trace(root=model, meta_args=meta_args)
+    gm = torch.fx.GraphModule(model, graph, model.__class__.__name__)
+    mod_graph = gm.graph
+    nodes = list(mod_graph.nodes)
+    nodes_to_split = []
+    for node in nodes:
+        next_node = node.next
+        if next_node.op == 'call_module' and 'model.decoder.layers' in next_node.target and 'self_attn_layer_norm' in next_node.target:
+            nodes_to_split.append(node)
+        # if node.op == 'output':
+        #     print('---------')
+        #     print(f'node: {node} | op: {node.op} | target:{node.target} | args: {node.args} | users: {node.users}')
+            # print(f'node: {node.prev} | op: {node.prev.op} | target:{node.prev.target} | args: {node.prev.args} | users: {node.prev.users}')
     
+    nodes_in_rank = even_split(nodes_to_split, stage_num)
+    start_node = nodes_in_rank[pp_rank][0] if pp_rank > 0 else nodes[0]
+    end_node = nodes_in_rank[pp_rank+1][0].prev if pp_rank < stage_num-1 else nodes[-1]
+    #print(f'start: {start_node} | end: {end_node}')
+    # construct new Module
+    # 1. remove tail & add output
+    # 2. add input & remove head
+    if pp_rank < stage_num - 1:
+        for node in reversed(nodes):
+            if not end_node is node:
+                mod_graph.erase_node(node)
+            else:
+                break
+        with mod_graph.inserting_after(end_node):
+            next_start = nodes_in_rank[pp_rank+1][0]
+            next_end = nodes_in_rank[pp_rank+2][1].prev if pp_rank < stage_num-2 else nodes[-1]
+            set_stage_output(mod_graph, nodes, start_node, end_node, next_start, next_end)
+
+def partition(data_kwargs: dict, pp_rank: int, chunk: int, stage_num: int):
     ppg.initialise_lock.acquire()
-    pipelinable = PipelinableContext(policy='uniform')
-    with pipelinable:
-        model = OPTForCausalLM.from_pretrained(
-                model_name,
-                from_tf=bool(".ckpt" in model_name),
-                config=config,
-                local_files_only=False
-            )
-
-    #exec_seq = ['model.decoder.embed_tokens', 'model.decoder.embed_positions', 'model.decoder.final_layer_norm',
-    #            'model.decoder.layers.0', 'model.lm_head']
-    exec_seq = ['model', 'lm_head']
-    pipelinable.to_layer_list(exec_seq)
+    if pp_rank == 0:
+        config = AutoConfig.from_pretrained(model_name)
+        model = OPTForCausalLM(config)
+        
+        create_partition_module(pp_rank, stage_num, model, data_kwargs)
+        #print(f"rank_{pp_rank} {get_number_of_params(partition) * 4 // 1024 ** 2}M")
     
-    partition = pipelinable.partition(1, stage_num, pp_rank)
-    print(f"rank_{pp_rank} {get_number_of_params(partition) * 4 // 1024 ** 2}M")
-    
-    ppg.initialise_lock.release()
-    
+        ppg.initialise_lock.release()
+    exit()
     return partition
 
-
-# world_size = 4 for uniform
 def data_process_func(pp_rank: int, args_kwargs):
     if pp_rank == 0:
         args = args_kwargs[0]
@@ -96,7 +123,7 @@ def data_process_func(pp_rank: int, args_kwargs):
         args = [x]
         kwargs = {"attention_mask" : attention_mask}
         return args, kwargs
-
+    
     elif pp_rank == 3:
         x = args_kwargs[0]
         attention_mask = args_kwargs[1]
@@ -164,7 +191,7 @@ def run_master(args):
     )
 
     train_dataset = lm_datasets["train"]
-    eval_dataset = lm_datasets["validation"]
+    # eval_dataset = lm_datasets["validation"]
     
     # DataLoaders creation:
     logger.info("Dataloaders is creating", ranks=[0])
@@ -174,14 +201,20 @@ def run_master(args):
                                       pin_memory=True,
                                       collate_fn=default_data_collator,
                                       batch_size=batch_size)
-    eval_dataloader = DataLoader(eval_dataset,
-                                 collate_fn=default_data_collator,
-                                 batch_size=batch_size)
+    # eval_dataloader = DataLoader(eval_dataset,
+    #                              collate_fn=default_data_collator,
+    #                              batch_size=batch_size)
     logger.info("Dataloaders have been created", ranks=[0])
+    
+    data_kwargs = {},
+    for b in train_dataloader:
+        data_kwargs = {'input_ids': b['input_ids'],
+            'attention_mask': b['attention_mask']}
+        break
     
     # engine
     engine = OneFOneBPipelineEngine(
-        partition_fn=partition,
+        partition_fn=partial(partition, data_kwargs),
         stage_num=stage_num,
         num_microbatches=num_microbatches,
         device=device,
@@ -194,32 +227,12 @@ def run_master(args):
     
     engine.initialize_optimizer(getattr(torch.optim, args.optimizer), lr=1e-3)
     
-    # choose kernel
     for b in train_dataloader:
         batch = {'input_ids': b['input_ids'],
             'attention_mask': b['attention_mask']}
         labels = b['labels']
         engine.forward_backward(batch=batch, labels=labels)
         break
-    
-    # for epoch_id in range(epoch):
-    #     data_iter = tqdm(train_dataloader, desc=f'[Train->Epoch {epoch_id}]')
-
-    #     times = []
-    #     for b in data_iter:
-    #         batch = {'input_ids': b['input_ids'],
-    #             'attention_mask': b['attention_mask']}
-    #         labels = b['labels']
-    #         s = time.time()
-    #         engine.forward_backward(batch=batch, labels=labels)
-    #         cost_time = time.time() - s
-    #         times.append(cost_time)
-
-    #         if len(times) == 10:
-    #             break
-
-    #     print("avg cost time : {}s".format(sum(times) / len(times)))
-    #     break
 
 if __name__ == '__main__':
     disable_existing_loggers()
