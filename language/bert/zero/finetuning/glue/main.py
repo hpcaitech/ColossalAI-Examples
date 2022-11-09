@@ -11,17 +11,18 @@ from utils import (get_model, get_optimizer, get_lr_scheduler, get_eval_dataload
                    run_train)
 
 from colossalai.engine.gradient_accumulation import GradAccumLrSchedulerByStep
-from colossalai.zero.init_ctx import ZeroInitContext
-from colossalai.zero.shard_utils import TensorShardStrategy
+from colossalai.utils.model.colo_init_context import ColoInitContext
+from colossalai.nn.parallel import ZeroDDP
+from colossalai.gemini import ChunkManager, GeminiManager
+from colossalai.zero import ZeroOptimizer
+from colossalai.tensor import ProcessGroup
+from colossalai.utils import get_current_device
 
 
 def main():
-    args = parse_args()
-
     # init distributed environment
-    colossalai.launch_from_torch(config='./configs/colossalai_zero.py')
-
-    use_zero = hasattr(gpc.config, 'zero')
+    args = parse_args()
+    colossalai.launch_from_torch(config={})
 
     # get logger
     logger = get_dist_logger()
@@ -33,7 +34,7 @@ def main():
     output_dir = Path(args.output_dir).absolute()
     args.output_dir = output_dir
 
-    if args.train and output_dir.exists and next(output_dir.iterdir(), None):
+    if args.train and output_dir.exists() and next(output_dir.iterdir(), None):
         raise FileExistsError(f"Output directory ({output_dir}) already exists and is not empty.")
 
     output_dir.mkdir(exist_ok=True)
@@ -47,32 +48,26 @@ def main():
                                                            do_lower_case=args.do_lower_case,
                                                            max_len=512)
 
-    # check if checkpoint file is given
-    if args.init_checkpoint:
-        use_hf_pretrain = False
-    else:
-        use_hf_pretrain = True
-
     # Prepare model
-    if use_zero:
-        shard_strategy = TensorShardStrategy()
-        with ZeroInitContext(target_device=torch.cuda.current_device(), shard_strategy=shard_strategy,
-                             shard_param=True):
-            model = get_model(args.bert_config, num_labels, use_hf_pretrain)
-    else:
-        model = get_model(args.bert_config, num_labels, use_hf_pretrain)
+    with ColoInitContext(device=get_current_device()):
+        model = get_model(args.bert_config, num_labels)
+    logger.info("Loading model checkpoint from HuggingFace pretrained weights", ranks=[0])
 
-    if use_hf_pretrain:
-        logger.info("Loading model checkpoint from HuggingFace pretrained weights", ranks=[0])
-    else:
-        logger.info(f"Loading model checkpoint from {args.init_checkpoint}", ranks=[0])
-        checkpoint = torch.load(args.init_checkpoint, map_location='cpu')
-        checkpoint = checkpoint["model"] if "model" in checkpoint.keys() else checkpoint
-        model.load_state_dict(checkpoint, strict=False)
-        logger.info("Model checkpoint is loaded", ranks=[0])
+    # added zero ddp
+    chunk_size = ChunkManager.search_chunk_size(model, 64 * 1024**2, 32)
+    pg = ProcessGroup()
+    dp_pg = pg.dp_process_group()
+    placement_policy = 'auto'
+    chunk_manager = ChunkManager(chunk_size,
+                                 process_group=pg,
+                                 enable_distributed_storage=True,
+                                 init_device=GeminiManager.get_default_device(placement_policy))
+    gemini_manager = GeminiManager(placement_policy, chunk_manager)
+    model = ZeroDDP(model, gemini_manager)
 
     # Prepare optimizer
     optimizer = get_optimizer(model, args.learning_rate)
+    optimizer = ZeroOptimizer(optimizer, model, initial_scale=8192)
 
     # prepare loss function
     criterion = torch.nn.CrossEntropyLoss()
@@ -96,19 +91,12 @@ def main():
     else:
         eval_dataloader = None
 
-    engine, train_dataloader, eval_dataloader, lr_scheduler = colossalai.initialize(model=model,
-                                                                                    optimizer=optimizer,
-                                                                                    criterion=criterion,
-                                                                                    train_dataloader=train_dataloader,
-                                                                                    test_dataloader=eval_dataloader,
-                                                                                    lr_scheduler=lr_scheduler)
-
     if args.train:
         # train
-        run_train(args, engine, train_dataloader, lr_scheduler, logger)
+        run_train(args, model, optimizer, criterion, train_dataloader, lr_scheduler, logger)
 
     if args.eval:
-        run_eval(args, engine, eval_dataloader, eval_examples, num_labels, label_map, logger)
+        run_eval(args, model, criterion, eval_dataloader, eval_examples, num_labels, label_map, logger)
 
     gpc.destroy()
 
