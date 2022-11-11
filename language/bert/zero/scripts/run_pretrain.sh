@@ -14,4 +14,6 @@ colossalai run --nproc_per_node 8 \
     --data $DATA_PATH \
     --vocab-file $VOCAB_FILE \
     --batch-size 32 \
-    --epoch 100
+    --epoch 100 \
+    --output-dir ./pretrain_outputs \
+    --save-checkpoint-interval 5
