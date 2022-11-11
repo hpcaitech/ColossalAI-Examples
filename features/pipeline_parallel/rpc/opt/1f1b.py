@@ -14,9 +14,19 @@ from tqdm.auto import tqdm
 from itertools import chain
 from functools import partial
 from colossalai.fx import ColoTracer
+from colossalai.fx.passes.adding_split_node_pass import split_with_split_nodes_pass, balanced_split_pass
 
 import torch
 import time
+import inspect
+
+'''
+Add following code to colossalai/pipeline/rpc/_pipeline_base.py +497 to make the code work
+if not grad_tensors is None:
+    real_out_len = len(grad_tensors)
+    if not isinstance(stage_outputs, torch.Tensor) and  len(grad_tensors) < len(stage_outputs):
+        stage_outputs = stage_outputs[:real_out_len]
+'''
 
 # TODO: Set configs with cmd
 # dataset_path = "/data/scratch/huggingface/datasets/wikitext/wikitext-2/"
@@ -31,78 +41,29 @@ class OPTLoss(torch.nn.Module):
         self.loss = CrossEntropyLoss()
 
     def forward(self, logits, labels):
+        logits = logits[0]
         shift_logits = logits[..., :-1, :].contiguous()
         shift_labels = labels[..., 1:].contiguous()
         # Flatten the tokens
         return self.loss(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
     
-def get_number_of_params(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-def even_split(lst, n):
-    res = []
-    size = len(lst) // n
-    remain = len(lst) % n
-    start = 0
-    for i in range(0, n):
-        if i < remain:
-            res.append(lst[start:start+size+1])
-            start += size + 1
-        else:
-            res.append(lst[start:start+size])
-            start += size
-    return res
-
-def set_stage_output(mod_graph, nodes, start_node, end_node, next_start, next_end):
-    pass
-
 def create_partition_module(pp_rank: int, stage_num: int, model, data_kwargs):
+    model.eval()
     tracer = ColoTracer()
     meta_args = {k: v.to('meta') for k, v in data_kwargs.items()}
     graph = tracer.trace(root=model, meta_args=meta_args)
     gm = torch.fx.GraphModule(model, graph, model.__class__.__name__)
-    mod_graph = gm.graph
-    nodes = list(mod_graph.nodes)
-    nodes_to_split = []
-    for node in nodes:
-        next_node = node.next
-        if next_node.op == 'call_module' and 'model.decoder.layers' in next_node.target and 'self_attn_layer_norm' in next_node.target:
-            nodes_to_split.append(node)
-        # if node.op == 'output':
-        #     print('---------')
-        #     print(f'node: {node} | op: {node.op} | target:{node.target} | args: {node.args} | users: {node.users}')
-            # print(f'node: {node.prev} | op: {node.prev.op} | target:{node.prev.target} | args: {node.prev.args} | users: {node.prev.users}')
-    
-    nodes_in_rank = even_split(nodes_to_split, stage_num)
-    start_node = nodes_in_rank[pp_rank][0] if pp_rank > 0 else nodes[0]
-    end_node = nodes_in_rank[pp_rank+1][0].prev if pp_rank < stage_num-1 else nodes[-1]
-    #print(f'start: {start_node} | end: {end_node}')
-    # construct new Module
-    # 1. remove tail & add output
-    # 2. add input & remove head
-    if pp_rank < stage_num - 1:
-        for node in reversed(nodes):
-            if not end_node is node:
-                mod_graph.erase_node(node)
-            else:
-                break
-        with mod_graph.inserting_after(end_node):
-            next_start = nodes_in_rank[pp_rank+1][0]
-            next_end = nodes_in_rank[pp_rank+2][1].prev if pp_rank < stage_num-2 else nodes[-1]
-            set_stage_output(mod_graph, nodes, start_node, end_node, next_start, next_end)
+    annotated_model = balanced_split_pass(gm, stage_num)
+    split_model, split_submodules = split_with_split_nodes_pass(annotated_model)
+
+    return list(split_model.children())[pp_rank]
 
 def partition(data_kwargs: dict, pp_rank: int, chunk: int, stage_num: int):
-    ppg.initialise_lock.acquire()
-    if pp_rank == 0:
-        config = AutoConfig.from_pretrained(model_name)
-        model = OPTForCausalLM(config)
-        
-        create_partition_module(pp_rank, stage_num, model, data_kwargs)
-        #print(f"rank_{pp_rank} {get_number_of_params(partition) * 4 // 1024 ** 2}M")
+    config = AutoConfig.from_pretrained(model_name)
+    model = OPTForCausalLM(config)
+    module = create_partition_module(pp_rank, stage_num, model, data_kwargs)
     
-        ppg.initialise_lock.release()
-    exit()
-    return partition
+    return module
 
 def data_process_func(pp_rank: int, args_kwargs):
     if pp_rank == 0:
@@ -111,25 +72,8 @@ def data_process_func(pp_rank: int, args_kwargs):
         return args, kwargs
 
     elif pp_rank == 1:
-        x = args_kwargs[0]
-        attention_mask = args_kwargs[1]
-        args = [x]
-        kwargs = {"attention_mask" : attention_mask}
-        return args, kwargs
-    
-    elif pp_rank == 2:
-        x = args_kwargs[0]
-        attention_mask = args_kwargs[1]
-        args = [x]
-        kwargs = {"attention_mask" : attention_mask}
-        return args, kwargs
-    
-    elif pp_rank == 3:
-        x = args_kwargs[0]
-        attention_mask = args_kwargs[1]
-        args = [x]
-        kwargs = {"attention_mask" : attention_mask}
-        return args, kwargs
+        args = list(args_kwargs[:4])
+        return args, {}
 
 def run_master(args):
     logger = get_dist_logger()
