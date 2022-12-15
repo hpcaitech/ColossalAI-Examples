@@ -18,18 +18,7 @@ from colossalai.fx.passes.adding_split_node_pass import split_with_split_nodes_p
 from colossalai.pipeline.middleware.adaptor import get_fx_topology
 
 import torch
-import time
-import inspect
-'''
-Add following code to colossalai/pipeline/rpc/_pipeline_base.py +497 to make the code work
-if not grad_tensors is None:
-    real_out_len = len(grad_tensors)
-    if not isinstance(stage_outputs, torch.Tensor) and  len(grad_tensors) < len(stage_outputs):
-        stage_outputs = stage_outputs[:real_out_len]
-'''
 
-# TODO: Set configs with cmd
-# dataset_path = "/data/scratch/huggingface/datasets/wikitext/wikitext-2/"
 dataset_path = "wikitext"
 dataset_config = "wikitext-2-raw-v1"
 model_name = "facebook/opt-125m"
@@ -66,7 +55,7 @@ def create_partition_module(pp_rank: int, stage_num: int, model, data_kwargs):
 
 
 def partition(data_kwargs: dict, pp_rank: int, chunk: int, stage_num: int):
-    config = AutoConfig.from_pretrained(model_name, local_files_only=True)
+    config = AutoConfig.from_pretrained(model_name, local_files_only=False)
     config.enable_bias = False    # temporarily set it for tracer bug
     model = OPTForCausalLM(config)
     module = create_partition_module(pp_rank, stage_num, model, data_kwargs)
@@ -86,7 +75,7 @@ def run_master(args):
     num_microbatches = args.num_microbatches
     epoch = args.epoch
 
-    # prepare dataset
+    # Prepare dataset
     logger.info("Start preparing dataset", ranks=[0])
     raw_datasets = load_dataset(dataset_path, dataset_config)
     logger.info("Dataset is prepared", ranks=[0])
@@ -135,7 +124,6 @@ def run_master(args):
     )
 
     train_dataset = lm_datasets["train"]
-    # eval_dataset = lm_datasets["validation"]
 
     # DataLoaders creation:
     logger.info("Dataloaders is creating", ranks=[0])
@@ -145,9 +133,7 @@ def run_master(args):
                                       pin_memory=True,
                                       collate_fn=default_data_collator,
                                       batch_size=batch_size)
-    # eval_dataloader = DataLoader(eval_dataset,
-    #                              collate_fn=default_data_collator,
-    #                              batch_size=batch_size)
+
     logger.info("Dataloaders have been created", ranks=[0])
 
     data_kwargs = {},
