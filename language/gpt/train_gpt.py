@@ -97,9 +97,7 @@ def main():
     else:
         numel = calc_local_model_size(model)
 
-    tflop = numel * gpc.config.BATCH_SIZE * gpc.config.SEQ_LEN \
-        * gpc.get_world_size(ParallelMode.MODEL) * gpc.get_world_size(ParallelMode.DATA) * 8 / (1024 ** 4)
-
+    tflop = numel * gpc.config.BATCH_SIZE * gpc.config.SEQ_LEN * 8 / (1024**4)
     criterion = getattr(gpc.config, 'loss_fn', None)
     if criterion is not None:
         criterion = criterion.type()

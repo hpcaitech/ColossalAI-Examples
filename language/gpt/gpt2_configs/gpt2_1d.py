@@ -1,14 +1,14 @@
 from colossalai.amp import AMP_TYPE
 from titans.loss.lm_loss import GPTLMLoss
-from titans.model.gpt import gpt2_small
+from titans.model.gpt import gpt2_small, gpt2_large, gpt2_xl, gpt2_8B
 from torch.optim import Adam
 
-
-BATCH_SIZE = 1
+# change bs here
+BATCH_SIZE = 32
 SEQ_LEN = 1024
 NUM_EPOCHS = 60
 
-TENSOR_PARALLEL = 2
+TENSOR_PARALLEL = 4
 
 optimizer = dict(
     type=Adam,
@@ -16,16 +16,12 @@ optimizer = dict(
     weight_decay=1e-2,
 )
 
-fp16 = dict(
-    mode=AMP_TYPE.NAIVE
-)
+fp16 = dict(mode=AMP_TYPE.NAIVE)
 
-loss = dict(
-    type=GPTLMLoss,
-)
+loss = dict(type=GPTLMLoss,)
 
 model = dict(
-    type=gpt2_small,
+    type=gpt2_8B,
     checkpoint=True,
 )
 
