@@ -1,6 +1,6 @@
 # ColossalAI-Examples
 
-## 2022.01.05
+## 2023.01.05
 This repo is deprecated. Use our timely maintained example at [ColossalAI/example](https://github.com/hpcaitech/ColossalAI).
 
 ## Introduction
