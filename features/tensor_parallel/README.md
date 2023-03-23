@@ -10,7 +10,7 @@ To use tensor parallelism, there are several steps to follow:
 
 ## Reference
 
-If you wish to understand how tensor parallelism works exactly, you may refer to our [documentation](www.colossalai.org).
+If you wish to understand how tensor parallelism works exactly, you may refer to our [documentation](https://colossalai.org/docs/features/1D_tensor_parallel).
 
 
 ## How to run
